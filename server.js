@@ -45,7 +45,7 @@ const world  = new GameWorld(db);
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/concept', (_req, res) => res.sendFile(path.join(__dirname, 'aeternitas.html')));
+app.get('/concept', (_req, res) => res.sendFile(path.join(__dirname, 'aeterra.html')));
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 
 // ─────────────────────────── helpers ───────────────────────────────────────
