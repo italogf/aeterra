@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aeterra: World Breaker</title>
+<script src="/i18n.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -49,10 +50,14 @@
     font-size: .6rem; letter-spacing: .2em; color: #7a5e2a; text-align: center;
   }
 
-  #minimap {
+  #minimap-wrap {
     position: fixed; top: 12px; right: 12px;
+    display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+  }
+  #minimap {
     border: 1px solid #3a2e14; background: #06050366;
     image-rendering: pixelated;
+    display: block;
   }
 
   /* ── Chat ─────────────────────────────────────────────────────────── */
@@ -132,8 +137,10 @@
   }
 
   /* ── Inventory / stats panel ──────────────────────────────────────── */
-  #inv-panel {
+  #inv-wrap {
     position: fixed; bottom: 12px; right: 12px;
+  }
+  #inv-panel {
     width: 200px; max-height: 260px; overflow-y: auto;
     background: #08070588; backdrop-filter: blur(4px);
     border: 1px solid #2a2010; padding: 8px;
@@ -155,7 +162,6 @@
   .inv-item-meta { display:block; color:#5a4420; font-size:.5rem; margin-top:2px; }
   .panel-note { color:#3a2e14; font-size:.52rem; letter-spacing:.06em; margin-top:.45rem; line-height:1.5; }
   #inv-toggle {
-    position: fixed; bottom: 12px; right: 12px;
     background: #12100a88; border: 1px solid #3a2e14;
     color: #7a5e2a; font-family: 'Cinzel', serif;
     font-size: .6rem; letter-spacing: .1em; padding: 5px 10px;
@@ -211,6 +217,21 @@
   .death-title { font-family: 'Cinzel Decorative', serif; font-size: 1.5rem; color: #cc4444; margin-bottom: 1rem; }
   .death-msg { font-size: .7rem; color: #8a4444; letter-spacing: .08em; line-height: 1.8; }
 
+  /* ── Panel drag handles ────────────────────────────────────────────── */
+  .drag-handle {
+    height: 8px;
+    cursor: grab;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0.3; transition: opacity .2s;
+    user-select: none; pointer-events: auto;
+  }
+  .drag-handle:hover { opacity: 0.9; }
+  .drag-handle::before {
+    content: '⠶ ⠶ ⠶';
+    font-size: .4rem; color: #c9a84c; letter-spacing: .4em;
+  }
+  body.dragging, body.dragging * { cursor: grabbing !important; user-select: none !important; }
+
   /* ── Controls panel ──────────────────────────────────────────────────── */
   #help-btn {
     position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
@@ -262,9 +283,8 @@
   .wmap-lcolor  { width: 10px; height: 10px; flex-shrink: 0; border: 1px solid #2a2010; }
   .wmap-stats   { font-size: .55rem; color: #5a4420; letter-spacing: .1em; margin-top: .4rem; }
 
-  /* wmap button sits below minimap */
+  /* wmap button sits inside minimap-wrap */
   #wmap-btn {
-    position: fixed; right: 12px;
     background: #12100a88; border: 1px solid #2a2010;
     color: #5a4420; font-family: 'Cinzel', serif;
     font-size: .52rem; letter-spacing: .1em; padding: 3px 8px;
@@ -301,6 +321,16 @@
     cursor: pointer; z-index: 10; display: none;
   }
   #gm-admin-btn:hover { color: #d6b75a; border-color: #c9a84c88; }
+
+  /* ── Language toggle ────────────────────────────────────────────── */
+  .lang-toggle {
+    position: fixed; bottom: 102px; right: 12px;
+    background: #12100a88; border: 1px solid #3a2e14;
+    color: #7a5e2a; font-family: 'Cinzel', serif;
+    font-size: .58rem; letter-spacing: .13em; padding: 5px 10px;
+    cursor: pointer; z-index: 10; transition: all .2s;
+  }
+  .lang-toggle:hover { color: #c9a84c; border-color: #3a2e14; }
 
   #gm-admin-modal {
     position: fixed; inset: 0; background: #060503ee;
@@ -453,11 +483,15 @@
 <body>
 
 <canvas id="c"></canvas>
+<div id="minimap-wrap">
+<div class="drag-handle"></div>
 <canvas id="minimap" width="100" height="70"></canvas>
-<button id="wmap-btn" onclick="openWorldMap()">&#x2726; MAPA MUNDIAL</button>
+<button id="wmap-btn" onclick="openWorldMap()" data-i18n="game.btn.worldMap">&#x2726; MAPA MUNDIAL</button>
+</div>
 
 <!-- HUD top-left -->
 <div id="hud-tl">
+  <div class="drag-handle"></div>
   <div class="hud-name" id="hud-name">—</div>
   <div class="hud-bar-row">
     <div class="hud-bar-label">HP</div>
@@ -480,52 +514,58 @@
 </div>
 
 <!-- location bar top-center -->
-<div id="hud-tc" id="hud-loc">—</div>
+<div id="hud-tc" id="hud-loc"><div class="drag-handle"></div>—</div>
 
 <!-- Chat -->
 <div id="chat-panel">
+  <div class="drag-handle"></div>
   <div id="npc-focus"></div>
   <div id="chat-log"></div>
   <div id="chat-input-row">
-    <input type="text" id="chat-input" placeholder="T para focar chat…" maxlength="140">
+    <input type="text" id="chat-input" data-i18n-placeholder="game.chat.placeholder" placeholder="T para focar chat…" maxlength="140">
     <button id="chat-send">▶</button>
   </div>
 </div>
 
 <div id="action-panel">
+  <div class="drag-handle"></div>
   <div id="action-terrain">Exploração ativa. Nenhuma ação contextual disponível.</div>
   <div id="action-list"></div>
 </div>
 
 <!-- Inventory -->
 <button id="char-btn" onclick="openCharSheet()">&#x25C9; PERSONAGEM</button>
-<button id="gm-admin-btn" onclick="openAdminPanel()">☬ ADMIN</button>
-<button id="inv-toggle" onclick="toggleInv()">⚔ INVENTÁRIO</button>
+<button id="gm-admin-btn" onclick="openAdminPanel()">&#x262C; ADMIN</button>
+<div id="inv-wrap">
+<div class="drag-handle"></div>
+<button id="inv-toggle" onclick="toggleInv()">&#x2694; INVENTÁRIO</button>
 <div id="inv-panel">
-  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin-bottom:.5rem">INVENTÁRIO</div>
+  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin-bottom:.5rem" data-i18n="game.inv.title">INVENTÁRIO</div>
   <div id="inv-list" style="color:#7a5e2a;font-size:.62rem;line-height:1.7"></div>
-  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin:.7rem 0 .5rem">EQUIPADO</div>
+  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin:.7rem 0 .5rem" data-i18n="game.inv.equipped">EQUIPADO</div>
   <div id="equip-list"></div>
   <div style="margin-top:.5rem;font-size:.6rem;color:#3a2e14" id="gold-display">Ouro: 0</div>
-  <div class="panel-note">Clique em um item do inventário para equipar. Clique em um item equipado para remover.</div>
+  <div class="panel-note" data-i18n="game.inv.note">Clique em equipamento para equipar. Itens medicinais podem ser usados direto no inventario.</div>
+</div>
 </div>
 
-<!-- Controls -->\n<button id="help-btn" onclick="toggleHelp()">? CONTROLES</button>
+<!-- Controls -->
+<button id="help-btn" onclick="toggleHelp()" data-i18n="game.btn.controls">? CONTROLES</button>
 <div id="controls-panel">
-  <div class="ctrl-title">CONTROLES DE JOGO</div>
+  <div class="ctrl-title" data-i18n="game.ctrl.title">CONTROLES DE JOGO</div>
   <div class="ctrl-grid">
-    <div class="ctrl-row"><span class="ctrl-key">WASD / ↑←↓→</span><span class="ctrl-desc">Mover personagem</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">ESPAÇO / F</span><span class="ctrl-desc">Atacar inimigo próximo</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">Clique no alvo</span><span class="ctrl-desc">Atacar alvo específico</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">E</span><span class="ctrl-desc">Usar ação contextual principal</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">1 / 2 / 3</span><span class="ctrl-desc">Escolher mineração, pesca ou cultivo</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">T</span><span class="ctrl-desc">Focar chat</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">I</span><span class="ctrl-desc">Inventário</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">Clique item</span><span class="ctrl-desc">Equipar / remover equipamento</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">M</span><span class="ctrl-desc">Mapa do mundo</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">C</span><span class="ctrl-desc">Ficha do personagem</span></div>
-    <div class="ctrl-row"><span class="ctrl-key">Parado 5s+</span><span class="ctrl-desc">Regenerar HP (3%/s)</span></div>
-    <div class="ctrl-note">Bordas de mapa → muda zona automaticamente &nbsp;|&nbsp; ESC fecha painéis</div>
+    <div class="ctrl-row"><span class="ctrl-key">WASD / ↑←↓→</span><span class="ctrl-desc" data-i18n="game.ctrl.move">Mover personagem</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">ESPAÇO / F</span><span class="ctrl-desc" data-i18n="game.ctrl.attack">Atacar inimigo próximo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Clique no alvo</span><span class="ctrl-desc" data-i18n="game.ctrl.attackTarget">Atacar alvo específico</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">E</span><span class="ctrl-desc" data-i18n="game.ctrl.interact">Usar ação contextual principal</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">1 / 2 / 3</span><span class="ctrl-desc" data-i18n="game.ctrl.activities">Escolher mineração, pesca ou cultivo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">T</span><span class="ctrl-desc" data-i18n="game.ctrl.chat">Focar chat</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">I</span><span class="ctrl-desc" data-i18n="game.ctrl.inventory">Inventário</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Clique item</span><span class="ctrl-desc" data-i18n="game.ctrl.equip">Equipar / remover equipamento</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">M</span><span class="ctrl-desc" data-i18n="game.ctrl.map">Mapa do mundo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">C</span><span class="ctrl-desc" data-i18n="game.ctrl.charsheet">Ficha do personagem</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Parado 5s+</span><span class="ctrl-desc" data-i18n="game.ctrl.regen">Regenerar HP (3%/s)</span></div>
+    <div class="ctrl-note" data-i18n="game.ctrl.note">Bordas de mapa → muda zona automaticamente &nbsp;|&nbsp; ESC fecha painéis</div>
   </div>
 </div>
 
@@ -533,35 +573,35 @@
 <div id="gm-admin-modal" onclick="if(event.target===this)closeAdminPanel()">
   <div id="gm-admin-card">
     <div class="gm-admin-header">
-      <span class="gm-admin-title">☬ CONTROLE ADMINISTRATIVO</span>
-      <button class="gm-admin-close" onclick="closeAdminPanel()">&#x2715; FECHAR</button>
+      <span class="gm-admin-title" data-i18n="game.gm.title">☬ CONTROLE ADMINISTRATIVO</span>
+      <button class="gm-admin-close" onclick="closeAdminPanel()" data-i18n="game.gm.close">&#x2715; FECHAR</button>
     </div>
     <div class="gm-admin-body">
       <div class="gm-admin-self" id="gm-admin-self">Conta: —</div>
-      <label class="gm-admin-label" for="gm-admin-target">USERNAME ALVO</label>
-      <input class="gm-admin-input" id="gm-admin-target" type="text" maxlength="20" placeholder="Nome exato da conta para administrar">
+      <label class="gm-admin-label" for="gm-admin-target" data-i18n="game.gm.targetLabel">USERNAME ALVO</label>
+      <input class="gm-admin-input" id="gm-admin-target" type="text" maxlength="20" data-i18n-placeholder="game.gm.targetPH" placeholder="Nome exato da conta para administrar">
 
       <div class="gm-admin-grid">
         <div class="gm-admin-section">
-          <div class="gm-admin-section-title">ISENÇÃO DE COOLDOWN</div>
-          <div class="gm-admin-copy">Ativa ou remove a exceção que permite criar novo personagem sem aguardar 24h após a morte.</div>
+          <div class="gm-admin-section-title" data-i18n="game.gm.cooldownTitle">ISENÇÃO DE COOLDOWN</div>
+          <div class="gm-admin-copy" data-i18n="game.gm.cooldownDesc">Ativa ou remove a exceção que permite criar novo personagem sem aguardar 24h após a morte.</div>
           <div class="gm-admin-actions">
-            <button class="gm-admin-action" onclick="submitCooldownExemption(true)">LIBERAR 24H</button>
-            <button class="gm-admin-action danger" onclick="submitCooldownExemption(false)">RESTAURAR 24H</button>
+            <button class="gm-admin-action" onclick="submitCooldownExemption(true)" data-i18n="game.gm.cooldownGrant">LIBERAR 24H</button>
+            <button class="gm-admin-action danger" onclick="submitCooldownExemption(false)" data-i18n="game.gm.cooldownRevoke">RESTAURAR 24H</button>
           </div>
         </div>
 
         <div class="gm-admin-section">
-          <div class="gm-admin-section-title">CARGO GM</div>
-          <div class="gm-admin-copy">Promove a conta alvo para GM ou remove esse cargo sem editar o banco manualmente.</div>
+          <div class="gm-admin-section-title" data-i18n="game.gm.roleTitle">CARGO GM</div>
+          <div class="gm-admin-copy" data-i18n="game.gm.roleDesc">Promove a conta alvo para GM ou remove esse cargo sem editar o banco manualmente.</div>
           <div class="gm-admin-actions">
-            <button class="gm-admin-action" onclick="submitGmRole(true)">PROMOVER A GM</button>
-            <button class="gm-admin-action danger" onclick="submitGmRole(false)">REMOVER GM</button>
+            <button class="gm-admin-action" onclick="submitGmRole(true)" data-i18n="game.gm.roleGrant">PROMOVER A GM</button>
+            <button class="gm-admin-action danger" onclick="submitGmRole(false)" data-i18n="game.gm.roleRevoke">REMOVER GM</button>
           </div>
         </div>
       </div>
 
-      <div class="gm-admin-feedback" id="gm-admin-feedback">Aguardando comando administrativo.</div>
+      <div class="gm-admin-feedback" id="gm-admin-feedback" data-i18n="game.gm.feedback">Aguardando comando administrativo.</div>
     </div>
   </div>
 </div>
@@ -570,8 +610,8 @@
 <div id="wmap-modal" onclick="if(event.target===this)closeWorldMap()">
   <div id="wmap-card">
     <div class="wmap-title">
-      &#x2726; MAPA DO MUNDO DESCOBERTO
-      <button class="wmap-close" onclick="closeWorldMap()">&#x2715; FECHAR</button>
+      <span data-i18n="game.wmap.title">&#x2726; MAPA DO MUNDO DESCOBERTO</span>
+      <button class="wmap-close" onclick="closeWorldMap()" data-i18n="game.wmap.close">&#x2715; FECHAR</button>
     </div>
     <canvas id="wmap-canvas"></canvas>
     <div class="wmap-stats" id="wmap-stats"></div>
@@ -583,40 +623,40 @@
 <div id="charsheet-modal" onclick="if(event.target===this)closeCharSheet()">
   <div id="charsheet-card">
     <div class="csh-header">
-      <span class="csh-title">&#x2726; FICHA DO PERSONAGEM</span>
-      <button class="csh-close" onclick="closeCharSheet()">&#x2715; FECHAR</button>
+      <span class="csh-title" data-i18n="game.cs.header">&#x2726; FICHA DO PERSONAGEM</span>
+      <button class="csh-close" onclick="closeCharSheet()" data-i18n="game.cs.close">&#x2715; FECHAR</button>
     </div>
     <div class="csh-body">
       <!-- Left: identity + equipment -->
       <div class="csh-panel">
-        <div class="csh-panel-title">IDENTIDADE</div>
+        <div class="csh-panel-title" data-i18n="game.cs.identity">IDENTIDADE</div>
         <div class="csh-portrait" id="csh-portrait">&#x25C9;</div>
         <div class="csh-charname" id="csh-charname">—</div>
         <div class="csh-charinfo" id="csh-charinfo">—</div>
-        <div class="csh-panel-title" style="margin-top:.9rem">EQUIPAMENTOS</div>
+        <div class="csh-panel-title" style="margin-top:.9rem" data-i18n="game.cs.equipment">EQUIPAMENTOS</div>
         <div id="csh-equips"></div>
       </div>
       <!-- Center: status bars + attributes -->
       <div class="csh-panel">
-        <div class="csh-panel-title">STATUS</div>
+        <div class="csh-panel-title" data-i18n="game.cs.status">STATUS</div>
         <div id="csh-status"></div>
-        <div class="csh-panel-title" style="margin-top:.9rem">ATRIBUTOS</div>
+        <div class="csh-panel-title" style="margin-top:.9rem" data-i18n="game.cs.attributes">ATRIBUTOS</div>
         <div id="csh-attrs"></div>
       </div>
       <!-- Right: achievements -->
       <div class="csh-panel" style="border-right:none">
-        <div class="csh-panel-title">CLASSE E SKILLS</div>
+        <div class="csh-panel-title" data-i18n="game.cs.classSkills">CLASSE E SKILLS</div>
         <div id="csh-skills"></div>
-        <div class="csh-panel-title" style="margin-top:.9rem">EFEITOS ATIVOS</div>
+        <div class="csh-panel-title" style="margin-top:.9rem" data-i18n="game.cs.activeEffects">EFEITOS ATIVOS</div>
         <div id="csh-effects"></div>
-        <div class="csh-panel-title">CONQUISTAS</div>
+        <div class="csh-panel-title" data-i18n="game.cs.achievements">CONQUISTAS</div>
         <div id="csh-achs"></div>
       </div>
     </div>
     <div class="csh-footer">
-      <div class="csh-footer-title">&#x2726; CRÔNICAS DO DESTINO</div>
+      <div class="csh-footer-title" data-i18n="game.cs.chronicles">&#x2726; CRÔNICAS DO DESTINO</div>
       <div id="csh-chronicles"></div>
-      <div class="csh-footer-title" style="margin-top:.75rem">&#x2726; CONTRATOS LOCAIS</div>
+      <div class="csh-footer-title" style="margin-top:.75rem" data-i18n="game.cs.quests">&#x2726; CONTRATOS LOCAIS</div>
       <div id="csh-quests"></div>
     </div>
   </div>
@@ -651,9 +691,9 @@
 <!-- Death overlay -->
 <div class="overlay" id="ov-dead" style="display:none">
   <div class="death-card">
-    <div class="death-title">VOCÊ MORREU</div>
-    <div class="death-msg" id="dead-msg">O destino recusa os fracos.</div>
-    <button class="ov-btn" style="margin-top:1.5rem;border-color:#4a1010;color:#cc4444" onclick="goLogin()">
+    <div class="death-title" data-i18n="game.death.title">VOCÊ MORREU</div>
+    <div class="death-msg" id="dead-msg" data-i18n="game.death.default">O destino recusa os fracos.</div>
+    <button class="ov-btn" style="margin-top:1.5rem;border-color:#4a1010;color:#cc4444" onclick="goLogin()" data-i18n="game.death.return">
       RETORNAR AO REINO
     </button>
   </div>
@@ -679,7 +719,11 @@ const TILE_CLR = {
   11: '#1e3010',  // tall grass
 };
 const TILE_ACCENT = { 9:'#c9a84c', 10:'#cc4444', 8:'#8b6020' };
-const BIOME_LABEL = { forest:'Floresta', desert:'Deserto', mountain:'Montanha', city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+const BIOME_LABEL = {
+  forest: tBiome('forest'), desert: tBiome('desert'), mountain: tBiome('mountain'),
+  city: tBiome('city'), water: tBiome('water'), plains: tBiome('plains'), anomaly: tBiome('anomaly'),
+};
+function getBiomeLabel(b) { return tBiome(b); }
 
 // ─── State ───────────────────────────────────────────────────────────────
 let gameState  = 'loading';  // loading | charCreate | playing | dead
@@ -739,7 +783,7 @@ function persistSessionState(session) {
 
   document.getElementById('gm-admin-btn').style.display = sessionState.isGm ? 'block' : 'none';
   document.getElementById('gm-admin-self').textContent =
-    `Conta: ${sessionState.username || '—'} · ${sessionState.isGm ? 'GM ativo' : 'Sem cargo GM'}${sessionState.bypassDeathCooldown ? ' · Isento do cooldown de morte' : ''}`;
+    `${t('game.gm.account')}: ${sessionState.username || '—'} · ${sessionState.isGm ? t('game.gm.active') : t('game.gm.noRole')}${sessionState.bypassDeathCooldown ? ' · ' + t('game.gm.exempted') : ''}`;
 
   if (!sessionState.isGm) closeAdminPanel();
 }
@@ -965,11 +1009,11 @@ function onStatusEvent(msg) {
 
 function onSkillUnlock(msg) {
   if (!msg.skill) return;
-  chatLine(`⬡ Skill aprendida: ${msg.skill.name}`, '#c9a84c', 'sys');
+  chatLine(t('game.chat.skillUnlock', msg.skill.name), '#c9a84c', 'sys');
 }
 
 function onLevelUp(msg) {
-  chatLine(`⬆ Nível ${msg.level}! HP: ${msg.hp}/${msg.maxHp}`, '#c9a84c');
+  chatLine(t('game.chat.levelUp', msg.level, msg.hp, msg.maxHp), '#c9a84c');
   if (myPlayer) {
     myPlayer.level = msg.level;
     myPlayer.hp    = msg.hp;
@@ -995,8 +1039,8 @@ function onDied(msg) {
   activeNpc = null;
   updateNpcFocus();
   document.getElementById('dead-msg').textContent =
-    msg.killerName ? `Abatido por ${msg.killerName}. O destino não perdoa os fracos.`
-                   : 'O destino recusou sua existência.';
+    msg.killerName ? t('game.death.byKiller', msg.killerName)
+                   : t('game.death.default');
   document.getElementById('ov-dead').style.display = 'flex';
 }
 
@@ -1136,7 +1180,7 @@ function updateHUD() {
   document.getElementById('hud-name').textContent =
     `${p.name || '—'}  ·  Nv ${p.level || 1}  ·  ${p.profession || ''}`;
   document.getElementById('hud-sub').textContent =
-    `${p.className || p.profession || 'Aventureiro'}  ·  ${activeNpc ? `Falando com ${activeNpc.name}` : 'Sem interlocutor ativo'}`;
+    `${p.className || p.profession || t('hud.adventure')}  ·  ${activeNpc ? t('game.hud.talkingWith', activeNpc.name) : t('game.hud.noInterlocutor')}`;
 
   const hpPct = Math.min(100, Math.max(0, (p.hp / (p.maxHp || 1)) * 100)).toFixed(1) + '%';
   const mpPct = Math.min(100, Math.max(0, (p.mp  / (p.maxMp || 1)) * 100)).toFixed(1) + '%';
@@ -1156,20 +1200,28 @@ function updateHUD() {
   const effects = Array.isArray(p.statusEffects) ? p.statusEffects : [];
   document.getElementById('hud-effects').innerHTML = effects.length
     ? effects.map(effect => `<span class="hud-effect ${effect.type === 'negative' ? 'neg' : 'pos'}">${effect.label}</span>`).join('')
-    : '<span class="hud-effect">Sem efeitos</span>';
+    : `<span class="hud-effect">${t('game.hud.noEffects')}</span>`;
 
   updateTimeHUD();
 
-  document.getElementById('gold-display').textContent = `Ouro: ${p.gold || 0}`;
+  document.getElementById('gold-display').textContent = `${t('game.inv.gold')}: ${p.gold || 0}`;
 
   const invList = document.getElementById('inv-list');
   if (myPlayer && myPlayer.inventory) {
     invList.innerHTML = myPlayer.inventory.length
-      ? myPlayer.inventory.map((i, index) => `
-          <button class="inv-item-btn" data-index="${index}">
+      ? myPlayer.inventory.map((i, index) => {
+          const canEquip = !!i.slot;
+          const canUse = isMedicinalInventoryItem(i);
+          const action = canEquip ? 'equip' : (canUse ? 'use' : 'none');
+          const meta = canEquip
+            ? `Equipar em ${i.slot}`
+            : (canUse ? 'Usar agora (cura HP e MP)' : (i.description || i.type || 'Material'));
+          return `
+          <button class="inv-item-btn" data-index="${index}" data-action="${action}">
             ${i.qty || 1}× ${i.name}
-            <span class="inv-item-meta">${i.slot ? `Equipar em ${i.slot}` : (i.description || i.type || 'Material')}</span>
-          </button>`).join('')
+            <span class="inv-item-meta">${meta}</span>
+          </button>`;
+        }).join('')
       : '<div style="color:#3a2e14">Vazio</div>';
   }
 
@@ -1177,37 +1229,37 @@ function updateHUD() {
   const equipment = p.equipment || {};
   const slots = ['weapon', 'armor', 'helmet', 'boots', 'ring'];
   equipList.innerHTML = slots.map(slot => equipment[slot]
-    ? `<button class="equip-item-btn" data-slot="${slot}">${equipment[slot].name}<span class="inv-item-meta">Remover de ${slot}</span></button>`
-    : `<div class="panel-note">${slot}: vazio</div>`
+    ? `<button class="equip-item-btn" data-slot="${slot}">${equipment[slot].name}<span class="inv-item-meta">${t('game.inv.removeFrom')} ${slot}</span></button>`
+    : `<div class="panel-note">${slot}: ${t('game.inv.emptySlot')}</div>`
   ).join('');
 
   updateActionPanel();
 }
 
 function questStateLabel(state) {
-  if (state === 'ready_to_turn_in') return 'Pronta para entrega';
-  if (state === 'accepted') return 'Em andamento';
-  if (state === 'completed') return 'Concluida';
-  return 'Disponivel';
+  if (state === 'ready_to_turn_in') return t('game.quest.readyToTurnIn');
+  if (state === 'accepted') return t('game.quest.accepted');
+  if (state === 'completed') return t('game.quest.completed');
+  return t('game.quest.available');
 }
 
 function renderNpcTradeOffers(tradeOffers) {
   if (!Array.isArray(tradeOffers) || !tradeOffers.length) return '';
-  return `<div class="npc-section-title">COMERCIO</div><div class="npc-service-list">${tradeOffers.map(offer => `
+  return `<div class="npc-section-title">${t('game.npc.commerce')}</div><div class="npc-service-list">${tradeOffers.map(offer => `
     <button class="npc-service-btn" data-npc-action="buy_item" data-offer-id="${offer.offerId}">
-      Comprar ${offer.name}
-      <span class="npc-service-note">${offer.finalPrice} ouro${offer.discountPercent ? ` · base ${offer.basePrice}` : ''}</span>
+      ${t('game.npc.buyItem', offer.name)}
+      <span class="npc-service-note">${offer.finalPrice} ${t('game.quest.gold')}${offer.discountPercent ? ` · ${t('game.npc.basePrice')} ${offer.basePrice}` : ''}</span>
     </button>`).join('')}</div>`;
 }
 
 function renderNpcQuests(quests) {
   if (!Array.isArray(quests) || !quests.length) return '';
-  return `<div class="npc-section-title">MISSOES LOCAIS</div><div class="npc-service-list">${quests.map(quest => {
+  return `<div class="npc-section-title">${t('game.npc.quests')}</div><div class="npc-service-list">${quests.map(quest => {
     let button = '';
-    if (quest.canAccept) button = `<button class="npc-service-btn" data-npc-action="accept_quest" data-quest-id="${quest.questId}">Aceitar missao<span class="npc-service-note">${quest.requiredQty}x ${quest.objectiveItemName} · recompensa ${quest.rewardGold} ouro</span></button>`;
-    else if (quest.canTurnIn) button = `<button class="npc-service-btn" data-npc-action="turn_in_quest" data-quest-id="${quest.questId}">Entregar agora<span class="npc-service-note">Objetivo completo · ${quest.rewardGold} ouro${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</span></button>`;
-    else if (quest.state === 'completed') button = `<button class="npc-service-btn" disabled>Contrato encerrado<span class="npc-service-note">${quest.rewardNote || 'Favor concluido.'}</span></button>`;
-    else button = `<button class="npc-service-btn" disabled>Coleta em andamento<span class="npc-service-note">${quest.currentQty}/${quest.requiredQty} ${quest.objectiveItemName}</span></button>`;
+    if (quest.canAccept) button = `<button class="npc-service-btn" data-npc-action="accept_quest" data-quest-id="${quest.questId}">${t('game.npc.acceptQuest')}<span class="npc-service-note">${quest.requiredQty}x ${quest.objectiveItemName} · ${t('game.quest.reward')} ${quest.rewardGold} ${t('game.quest.gold')}</span></button>`;
+    else if (quest.canTurnIn) button = `<button class="npc-service-btn" data-npc-action="turn_in_quest" data-quest-id="${quest.questId}">${t('game.npc.turnIn')}<span class="npc-service-note">${t('game.quest.readyToTurnIn')} · ${quest.rewardGold} ${t('game.quest.gold')}${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</span></button>`;
+    else if (quest.state === 'completed') button = `<button class="npc-service-btn" disabled>${t('game.npc.questDone')}<span class="npc-service-note">${quest.rewardNote || t('game.npc.favor')}</span></button>`;
+    else button = `<button class="npc-service-btn" disabled>${t('game.npc.questOngoing')}<span class="npc-service-note">${quest.currentQty}/${quest.requiredQty} ${quest.objectiveItemName}</span></button>`;
     return `${button}`;
   }).join('')}</div>`;
 }
@@ -1222,12 +1274,12 @@ function updateNpcFocus() {
   }
   const relation = activeNpc.relation || null;
   const relationLine = relation
-    ? `Afinidade ${relation.affinity || 0} · ${relation.affinityLabel || 'estranho'} · ${relation.conversationCount || 0} conversas`
-    : 'Sem historico registrado';
-  const memoryLine = relation?.memorySummary || 'Ainda nao ha memoria forte entre voces.';
+    ? `${t('game.npc.affinity')} ${relation.affinity || 0} · ${relation.affinityLabel || 'estranho'} · ${relation.conversationCount || 0} ${t('game.npc.conversations')}`
+    : t('game.npc.noHistory');
+  const memoryLine = relation?.memorySummary || t('game.npc.noMemory');
   const serviceChips = relation?.unlocks?.services || [];
   panel.style.display = 'block';
-  panel.innerHTML = `<strong>${activeNpc.name}</strong> · ${activeNpc.profession}<br>${activeNpc.personality} · ${activeNpc.district} · fala sobre ${activeNpc.topic}<br>${relationLine}<br>${memoryLine}` +
+  panel.innerHTML = `<strong>${activeNpc.name}</strong> · ${activeNpc.profession}<br>${activeNpc.personality} · ${activeNpc.district} · ${t('game.npc.talksAbout')} ${activeNpc.topic}<br>${relationLine}<br>${memoryLine}` +
     (serviceChips.length ? `<div class="npc-chip-row">${serviceChips.map(chip => `<span class="npc-chip">${chip}</span>`).join('')}</div>` : '') +
     renderNpcTradeOffers(activeNpc.tradeOffers) +
     renderNpcQuests(activeNpc.quests);
@@ -1248,15 +1300,15 @@ function updateActionPanel() {
   if (!terrain || !list) return;
 
   if (!interactionContext) {
-    terrain.textContent = 'Exploração ativa. Nenhuma ação contextual disponível.';
+    terrain.textContent = t('game.action.idle');
     list.innerHTML = '';
     return;
   }
 
-  terrain.textContent = `${BIOME_LABEL[interactionContext.biome] || interactionContext.biome} · ${interactionContext.terrain}`;
+  terrain.textContent = `${getBiomeLabel(interactionContext.biome)} · ${interactionContext.terrain}`;
   const actions = Array.isArray(interactionContext.actions) ? interactionContext.actions : [];
   if (!actions.length) {
-    list.innerHTML = '<div class="panel-note">Sem atividades no tile atual. Explore margens, montanhas, dungeons e solo fertil.</div>';
+    list.innerHTML = `<div class="panel-note">${t('game.action.noActions')}</div>`;
     return;
   }
 
@@ -1265,7 +1317,7 @@ function updateActionPanel() {
     return `
       <button class="action-btn" data-action="${action.id}" ${action.disabled ? 'disabled' : ''}>
         ${index + 1}. ${action.label}
-        <span class="action-meta">${action.detail || 'Sem detalhes adicionais.'}${cooldown}</span>
+        <span class="action-meta">${action.detail || t('game.action.noDetail')}${cooldown}</span>
       </button>`;
   }).join('');
 }
@@ -1276,6 +1328,12 @@ function useInteractionAction(index) {
   if (!action || action.disabled) return false;
   sendWS({ type:'interact', actionId: action.id });
   return true;
+}
+
+function isMedicinalInventoryItem(item) {
+  if (!item) return false;
+  if (['healing_herb', 'marsh_herb', 'moon_tuber'].includes(item.itemId)) return true;
+  return Array.isArray(item.tags) && item.tags.includes('herb');
 }
 
 // ─── Input ────────────────────────────────────────────────────────────────
@@ -1347,7 +1405,14 @@ document.getElementById('chat-send').addEventListener('click', () => {
 document.getElementById('inv-list').addEventListener('click', e => {
   const button = e.target.closest('[data-index]');
   if (!button) return;
-  sendWS({ type: 'equip', index: Number(button.dataset.index) });
+  const index = Number(button.dataset.index);
+  if (button.dataset.action === 'equip') {
+    sendWS({ type: 'equip', index });
+    return;
+  }
+  if (button.dataset.action === 'use') {
+    sendWS({ type: 'use_item', index });
+  }
 });
 
 document.getElementById('equip-list').addEventListener('click', e => {
@@ -1411,11 +1476,11 @@ async function createChar() {
   const name = document.getElementById('cc-name').value.trim();
   const err  = document.getElementById('cc-err');
   err.textContent = '';
-  if (!name) { err.textContent = 'Digite um nome.'; return; }
-  if (!selGenderVal) { err.textContent = 'Selecione um gênero.'; return; }
+  if (!name) { err.textContent = t('game.cc.errNoName'); return; }
+  if (!selGenderVal) { err.textContent = t('game.cc.errNoGender'); return; }
 
   document.getElementById('cc-btn').disabled = true;
-  document.getElementById('cc-btn').textContent = 'INVOCANDO…';
+  document.getElementById('cc-btn').textContent = t('game.cc.btnLoading');
 
   try {
     const r = await fetch('/api/character/create', {
@@ -1433,13 +1498,13 @@ async function createChar() {
 
     document.getElementById('cc-btn').style.display = 'none';
     document.getElementById('cc-details').innerHTML = `
-      <div class="rline"><span class="rlabel">NOME</span>     <span class="rval">${c.name} ${c.surname}</span></div>
-      <div class="rline"><span class="rlabel">ORIGEM</span>   <span class="rval">${BIOME_PT[c.biome] || c.biome}</span></div>
-      <div class="rline"><span class="rlabel">PROFISSÃO</span><span class="rval">${c.profession}</span></div>
-      <div class="rline"><span class="rlabel">TRAÇOS</span>   <span class="rval">${(c.traits||[]).join(' · ')}</span></div>
-      <div class="rline"><span class="rlabel">HP</span>       <span class="rval">${c.maxHp ?? c.max_hp}</span></div>
-      <div class="rline"><span class="rlabel">ATK / DEF</span><span class="rval">${c.atk} / ${c.def}</span></div>
-      <div class="rline"><span class="rlabel">DESTINO</span>  <span class="rval">${(c.familySlot || c.family_slot || {}).type || '—'}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.name')}</span>     <span class="rval">${c.name} ${c.surname}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.origin')}</span>   <span class="rval">${tBiome(c.biome)}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.profession')}</span><span class="rval">${c.profession}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.traits')}</span>   <span class="rval">${(c.traits||[]).join(' · ')}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.hp')}</span>       <span class="rval">${c.maxHp ?? c.max_hp}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.atkDef')}</span><span class="rval">${c.atk} / ${c.def}</span></div>
+      <div class="rline"><span class="rlabel">${t('game.reveal.destiny')}</span>  <span class="rval">${(c.familySlot || c.family_slot || {}).type || '—'}</span></div>
     `;
     document.getElementById('cc-reveal').style.display = 'block';
 
@@ -1495,7 +1560,7 @@ function updateTimeHUD() {
   const loc  = gameMap ? `${BIOME_LABEL[gameMap.biome] || gameMap.biome}  [${gameMap.x}, ${gameMap.y}]` : '—';
   document.getElementById('hud-tc').innerHTML =
     `<div style="margin-bottom:1px">${loc}</div>` +
-    `<div style="font-size:.52rem;letter-spacing:.12em;color:${isNight ? '#6a7acca0' : '#c9a84c88'}">${icon} ${hh}:${mn} &nbsp;·&nbsp; Dia ${day} &nbsp;·&nbsp; Ano ${year}</div>`;
+    `<div style="font-size:.52rem;letter-spacing:.12em;color:${isNight ? '#6a7acca0' : '#c9a84c88'}">${icon} ${hh}:${mn} &nbsp;·&nbsp; ${t('hud.day')} ${day} &nbsp;·&nbsp; ${t('hud.year')} ${year}</div>`;
 }
 
 function onTime(msg) {
@@ -1542,8 +1607,8 @@ function onStaminaLow() {
   if (now - stamLowCooldown < 2000) return; // debounce 2s
   stamLowCooldown = now;
   floatTexts.push({ wx: myPlayer.x * TS + TS / 2, wy: myPlayer.y * TS - 4,
-    text: 'EXAUSTO!', color: '#c99000', age: 0, maxAge: 65 });
-  chatLine('⚡ Sem estamina — aguarde recuperação.', '#7a6a10', 'sys');
+    text: t('game.chat.floatExhausted'), color: '#c99000', age: 0, maxAge: 65 });
+  chatLine(t('game.chat.noStamina'), '#7a6a10', 'sys');
   const stFill = document.getElementById('st-fill');
   if (stFill) { stFill.classList.add('low'); setTimeout(() => stFill.classList.remove('low'), 1400); }
 }
@@ -1576,7 +1641,7 @@ function getAdminTarget() {
   const input = document.getElementById('gm-admin-target');
   const username = input.value.trim();
   if (!username) {
-    setAdminFeedback('Informe o username alvo antes de executar a ação.', 'err');
+    setAdminFeedback(t('game.gm.noTarget'), 'err');
     input.focus();
     return null;
   }
@@ -1600,12 +1665,12 @@ async function postAdminAction(url, body) {
     return null;
   }
 
-  if (r.status === 403 && data?.error === 'Acesso restrito a GMs') {
+  if (r.status === 403 && data?.error === t('game.gm.accessDenied')) {
     persistSessionState({ ...sessionState, isGm: false });
   }
 
   if (!r.ok) {
-    setAdminFeedback(data?.error || 'Falha ao executar ação administrativa.', 'err');
+    setAdminFeedback(data?.error || t('game.gm.actionFailed'), 'err');
     return null;
   }
 
@@ -1616,13 +1681,13 @@ async function submitCooldownExemption(enabled) {
   const username = getAdminTarget();
   if (!username) return;
 
-  setAdminFeedback('Aplicando alteração de cooldown...', null);
+  setAdminFeedback(t('game.gm.applying'), null);
   const data = await postAdminAction('/api/admin/death-cooldown-exemption', { username, bypass: enabled });
   if (!data) return;
 
-  const verb = enabled ? 'agora ignora o cooldown de morte' : 'voltou a seguir a regra de 24h';
+  const verb = enabled ? t('game.gm.bypassGranted') : t('game.gm.bypassRevoked');
   setAdminFeedback(`${data.username} ${verb}.`, 'ok');
-  chatLine(`☬ Admin: ${data.username} ${verb}.`, '#c9a84c', 'sys');
+  chatLine(t('game.chat.adminAction', data.username, verb), '#c9a84c', 'sys');
 
   if (data.username.toLowerCase() === (sessionState.username || '').toLowerCase()) {
     persistSessionState({ ...sessionState, bypassDeathCooldown: enabled });
@@ -1633,13 +1698,13 @@ async function submitGmRole(enabled) {
   const username = getAdminTarget();
   if (!username) return;
 
-  setAdminFeedback('Aplicando alteração de cargo GM...', null);
+  setAdminFeedback(t('game.gm.applyingRole'), null);
   const data = await postAdminAction('/api/admin/gm-role', { username, isGm: enabled });
   if (!data) return;
 
-  const verb = enabled ? 'foi promovido a GM' : 'deixou de ser GM';
+  const verb = enabled ? t('game.gm.roleGranted') : t('game.gm.roleRevoked');
   setAdminFeedback(`${data.username} ${verb}.`, 'ok');
-  chatLine(`☬ Admin: ${data.username} ${verb}.`, '#c9a84c', 'sys');
+  chatLine(t('game.chat.adminAction', data.username, verb), '#c9a84c', 'sys');
 
   if (data.username.toLowerCase() === (sessionState.username || '').toLowerCase()) {
     persistSessionState({ ...sessionState, isGm: enabled });
@@ -1665,8 +1730,8 @@ async function loadCharSheet() {
   } catch { /* offline graceful */ }
 }
 
-const BIOME_PT_C  = { forest:'Floresta', desert:'Deserto', mountain:'Montanha', city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
-const GENDER_PT_C = { M:'Masculino', F:'Feminino', N:'Neutro' };
+const BIOME_PT_C  = { forest: tBiome('forest'), desert: tBiome('desert'), mountain: tBiome('mountain'), city: tBiome('city'), water: tBiome('water'), plains: tBiome('plains'), anomaly: tBiome('anomaly') };
+const GENDER_PT_C = { M: t('gender.M'), F: t('gender.F'), N: t('gender.N') };
 
 function normalizeLifeSkillsForView(raw) {
   if (Array.isArray(raw)) return raw;
@@ -1709,11 +1774,11 @@ function renderCharSheet({ character: c, chronicles, quests }) {
 
   // Equipment
   const SLOTS = [
-    { key:'weapon', icon:'\u2694', label:'Arma'     },
-    { key:'armor',  icon:'\uD83D\uDEE1', label:'Armadura' },
-    { key:'helmet', icon:'\u26D1', label:'Elmo'     },
-    { key:'boots',  icon:'\uD83D\uDC5F', label:'Botas'    },
-    { key:'ring',   icon:'\uD83D\uDC8D', label:'Anel'     },
+    { key:'weapon', icon:'\u2694',           label: t('slot.weapon') },
+    { key:'armor',  icon:'\uD83D\uDEE1',   label: t('slot.armor')  },
+    { key:'helmet', icon:'\u26D1',           label: t('slot.helmet') },
+    { key:'boots',  icon:'\uD83D\uDC5F',   label: t('slot.boots')  },
+    { key:'ring',   icon:'\uD83D\uDC8D',   label: t('slot.ring')   },
   ];
   document.getElementById('csh-equips').innerHTML = SLOTS.map(s =>
     `<div class="csh-equip-slot">
@@ -1721,7 +1786,7 @@ function renderCharSheet({ character: c, chronicles, quests }) {
       <span class="csh-slot-label">${s.label}</span>
       ${equip[s.key]
         ? `<span class="csh-slot-item">${equip[s.key].name || equip[s.key]}</span>`
-        : `<span class="csh-slot-empty">— vazio —</span>`}
+        : `<span class="csh-slot-empty">${t('game.cs.empty')}</span>`}
     </div>`
   ).join('');
 
@@ -1742,29 +1807,29 @@ function renderCharSheet({ character: c, chronicles, quests }) {
   const lv    = p.level ?? c.level ?? 1;
   const xpNxt = Math.floor(100 * Math.pow(1.5, lv - 1));
   document.getElementById('csh-attrs').innerHTML = [
-    ['NÍVEL',      lv],
-    ['EXP',       `${p.exp ?? c.exp ?? 0} / ${xpNxt}`],
-    ['ATQ',       p.atk ?? c.atk],
-    ['DEF',       p.def ?? c.def],
-    ['VEL',       p.spd ?? c.spd],
-    ['ESTÂMINA',  `${Math.floor(stamina)}/${Math.floor(maxSt)}`],
-    ['OURO',      p.gold ?? c.gold ?? 0],
-    ['ABATES',    kills],
-    ['DIAS VIVO', days],
+    [t('game.attr.level'),    lv],
+    [t('game.attr.exp'),     `${p.exp ?? c.exp ?? 0} / ${xpNxt}`],
+    [t('game.attr.atk'),     p.atk ?? c.atk],
+    [t('game.attr.def'),     p.def ?? c.def],
+    [t('game.attr.spd'),     p.spd ?? c.spd],
+    [t('game.attr.stamina'), `${Math.floor(stamina)}/${Math.floor(maxSt)}`],
+    [t('game.attr.gold'),    p.gold ?? c.gold ?? 0],
+    [t('game.attr.kills'),   kills],
+    [t('game.attr.daysAlive'), days],
   ].map(([k,v]) =>
     `<div class="csh-stat-row"><span class="csh-stat-label">${k}</span><span class="csh-stat-val">${v}</span></div>`
   ).join('');
 
   // Achievements
   const ACHS = [
-    { icon:'\u2B50', name:'Nascido no Destino',  desc:'Criou um personagem',         ok: true },
-    { icon:'\uD83D\uDC63', name:'Primeiro Passo', desc:'Entrou no mundo',           ok: true },
-    { icon:'\u2694',  name:'Primeiro Sangue',     desc:'Abateu 1 inimigo',           ok: kills >= 1 },
-    { icon:'\uD83D\uDDE1', name:'Ca\u00e7ador',   desc:'Abateu 5 inimigos',          ok: kills >= 5 },
-    { icon:'\uD83D\uDC80', name:'Ceifador',       desc:'Abateu 20 inimigos',         ok: kills >= 20 },
-    { icon:'\uD83D\uDD31', name:'Exterminador',   desc:'Abateu 100 inimigos',        ok: kills >= 100 },
-    { icon:'\uD83D\uDCC5', name:'Sobrevivente',   desc:'Sobreviveu 1 dia real',      ok: days >= 1 },
-    { icon:'\uD83C\uDF19', name:'Veterano',       desc:'Sobreviveu 7 dias',          ok: days >= 7 },
+    { icon:'\u2B50',           name: t('ach.born'),          desc: t('ach.born.desc'),        ok: true        },
+    { icon:'\uD83D\uDC63',   name: t('ach.firstStep'),     desc: t('ach.firstStep.desc'),   ok: true        },
+    { icon:'\u2694',          name: t('ach.firstBlood'),    desc: t('ach.firstBlood.desc'),  ok: kills >= 1  },
+    { icon:'\uD83D\uDDE1',   name: t('ach.hunter'),        desc: t('ach.hunter.desc'),      ok: kills >= 5  },
+    { icon:'\uD83D\uDC80',   name: t('ach.reaper'),        desc: t('ach.reaper.desc'),      ok: kills >= 20 },
+    { icon:'\uD83D\uDD31',   name: t('ach.exterminator'), desc: t('ach.exterminator.desc'), ok: kills >= 100 },
+    { icon:'\uD83D\uDCC5',   name: t('ach.survivor'),      desc: t('ach.survivor.desc'),    ok: days >= 1   },
+    { icon:'\uD83C\uDF19',   name: t('ach.veteran'),       desc: t('ach.veteran.desc'),     ok: days >= 7   },
   ];
   document.getElementById('csh-achs').innerHTML = '<div class="csh-ach-list">' +
     ACHS.map(a =>
@@ -1778,18 +1843,18 @@ function renderCharSheet({ character: c, chronicles, quests }) {
     ).join('') + '</div>';
 
   document.getElementById('csh-skills').innerHTML =
-    `<div class="csh-stat-row"><span class="csh-stat-label">CLASSE</span><span class="csh-stat-val">${className}</span></div>` +
-    `<div class="csh-stat-row"><span class="csh-stat-label">DISCIPLINAS</span><span class="csh-stat-val">${disciplines.map(([k, v]) => `${k}:${v}`).join(' · ') || '—'}</span></div>` +
+    `<div class="csh-stat-row"><span class="csh-stat-label">${t('cs.class')}</span><span class="csh-stat-val">${className}</span></div>` +
+    `<div class="csh-stat-row"><span class="csh-stat-label">${t('cs.discipline')}</span><span class="csh-stat-val">${disciplines.map(([k, v]) => `${k}:${v}`).join(' · ') || '—'}</span></div>` +
     (lifeSkills.length
-      ? lifeSkills.map(skill => `<div class="csh-stat-row"><span class="csh-stat-label">${(skill.name || skill.id).toUpperCase()}</span><span class="csh-stat-val">Nv ${skill.level} · ${skill.xp}/${skill.nextLevelXp || '?'}</span></div>`).join('')
-      : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">Nenhum oficio registrado ainda.</div>') +
+      ? lifeSkills.map(skill => `<div class="csh-stat-row"><span class="csh-stat-label">${(skill.name || skill.id).toUpperCase()}</span><span class="csh-stat-val">${t('cs.level')} ${skill.level} · ${skill.xp}/${skill.nextLevelXp || '?'}</span></div>`).join('')
+      : `<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">${t('game.cs.noTrades')}</div>`) +
     (skills.length
       ? `<div class="csh-chip-list" style="margin-top:.5rem">${skills.map(skill => `<span class="csh-chip">${skill.name || skill.id || skill}</span>`).join('')}</div>`
-      : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">Nenhuma skill aprendida ainda.</div>');
+      : `<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">${t('game.cs.noSkills')}</div>`);
 
   document.getElementById('csh-effects').innerHTML = effects.length
     ? `<div class="csh-chip-list">${effects.map(effect => `<span class="csh-chip ${effect.type === 'negative' ? 'neg' : 'pos'}">${effect.label || effect.id}</span>`).join('')}</div>`
-    : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em">Sem efeitos ativos.</div>';
+    : `<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em">${t('game.cs.noEffects')}</div>`;
 
   // Chronicles
   const chron = chronicles || [];
@@ -1797,23 +1862,22 @@ function renderCharSheet({ character: c, chronicles, quests }) {
     ? chron.map(ch =>
         `<div class="csh-chronicle"><span class="csh-chr-date">${(ch.created_at||'').slice(0,10)}</span> ${ch.description}</div>`
       ).join('')
-    : '<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">Nenhuma cr\u00f4nica registrada ainda.</div>';
+    : `<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">${t('game.cs.noChronicles')}</div>`;
 
   document.getElementById('csh-quests').innerHTML = questList.length
     ? `<div class="csh-quest-list">${questList.map(quest => `
         <div class="csh-quest ${quest.state === 'completed' ? 'completed' : quest.state === 'ready_to_turn_in' ? 'ready' : ''}">
           <div class="csh-quest-title">${quest.title} · ${questStateLabel(quest.state)}</div>
-          <div>${quest.npcName || 'Contato local'} pediu ${quest.requiredQty}x ${quest.objectiveItemName}.</div>
-          <div>Progresso: ${quest.currentQty}/${quest.requiredQty}</div>
-          <div>Recompensa: ${quest.rewardGold} ouro${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</div>
+          <div>${quest.npcName || t('game.quest.npcFallback')} ${t('game.quest.asked')} ${quest.requiredQty}x ${quest.objectiveItemName}.</div>
+          <div>${t('game.quest.progress')}: ${quest.currentQty}/${quest.requiredQty}</div>
+          <div>${t('game.quest.reward')}: ${quest.rewardGold} ${t('game.quest.gold')}${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</div>
         </div>`).join('')}</div>`
-    : '<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">Nenhum contrato ativo ou concluido ainda.</div>';
+    : `<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">${t('game.cs.noQuests')}</div>`;
 }
 
 // ─── World map ────────────────────────────────────────────────────────────
 function positionWmapBtn() {
-  const btn = document.getElementById('wmap-btn');
-  btn.style.top = (12 + mm.height + 5) + 'px';
+  // wmap-btn is inside #minimap-wrap (flex column) — no manual top positioning needed
 }
 
 async function openWorldMap() {
@@ -1842,7 +1906,7 @@ function renderWorldMap(zones, current) {
   const MAX_GRID_CELLS = 50000;
   if (!zones.length) {
     document.getElementById('wmap-canvas').getContext('2d').clearRect(0, 0, 1, 1);
-    document.getElementById('wmap-stats').textContent = 'Nenhuma zona descoberta ainda.';
+    document.getElementById('wmap-stats').textContent = t('game.wmap.noZones');
     return;
   }
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -1936,19 +2000,23 @@ function renderWorldMap(zones, current) {
     }
   }
 
-  const BIOME_PT2 = { forest:'Floresta', desert:'Deserto', mountain:'Montanha',
-                      city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+  const BIOME_PT2 = {
+    forest: tBiome('forest'), desert: tBiome('desert'), mountain: tBiome('mountain'),
+    city: tBiome('city'), water: tBiome('water'), plains: tBiome('plains'), anomaly: tBiome('anomaly'),
+  };
   const biomesFound = [...new Set(zones.map(z => z.biome))];
   document.getElementById('wmap-legend').innerHTML =
     biomesFound.map(b =>
       `<div class="wmap-litem"><div class="wmap-lcolor" style="background:${BIOME_MAP_CLR[b]||'#1a1510'}"></div>${BIOME_PT2[b]||b}</div>`
     ).join('') +
-    `<div class="wmap-litem"><div class="wmap-lcolor" style="background:#c9a84c44;border-color:#c9a84c"></div>Você está aqui</div>`;
+    `<div class="wmap-litem"><div class="wmap-lcolor" style="background:#c9a84c44;border-color:#c9a84c"></div>${t('game.wmap.here')}</div>`;
 
+  const zoneWord  = zones.length === 1 ? t('game.wmap.zone')   : t('game.wmap.zones');
+  const discWord  = zones.length === 1 ? t('game.wmap.disc1')  : t('game.wmap.discN');
   document.getElementById('wmap-stats').textContent =
-    `${zones.length} zona${zones.length !== 1 ? 's' : ''} descoberta${zones.length !== 1 ? 's' : ''}  ·  ` +
-    (current ? `Posição atual: [${current.x}, ${current.y}]` : '') +
-    (compactMode ? '  ·  Modo compacto (alto espalhamento de coordenadas)' : '');
+    `${zones.length} ${zoneWord} ${discWord}  ·  ` +
+    (current ? `${t('game.wmap.currentPos')}: [${current.x}, ${current.y}]` : '') +
+    (compactMode ? `  ·  ${t('game.wmap.compact')}` : '');
 }
 
 function goLogin() {
@@ -2035,6 +2103,82 @@ async function boot() {
     gameState = 'charCreate';
   }
 }
+
+// ─── Draggable panels ─────────────────────────────────────────────────────
+const PANEL_POS_KEY = 'aet_panel_pos';
+
+function savePanelPos(id, left, top) {
+  try {
+    const d = JSON.parse(localStorage.getItem(PANEL_POS_KEY) || '{}');
+    d[id] = { left, top };
+    localStorage.setItem(PANEL_POS_KEY, JSON.stringify(d));
+  } catch { /* ignore */ }
+}
+
+function loadPanelPositions() {
+  try {
+    const d = JSON.parse(localStorage.getItem(PANEL_POS_KEY) || '{}');
+    for (const [id, pos] of Object.entries(d)) {
+      const el = document.getElementById(id);
+      if (!el || !pos) continue;
+      el.style.left      = pos.left;
+      el.style.top       = pos.top;
+      el.style.right     = '';
+      el.style.bottom    = '';
+      el.style.transform = 'none';
+    }
+  } catch { /* ignore */ }
+}
+
+function makeDraggable(el, handleEl) {
+  let ox = 0, oy = 0;
+
+  handleEl.addEventListener('mousedown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = el.getBoundingClientRect();
+    ox = e.clientX - r.left;
+    oy = e.clientY - r.top;
+    // Normalize any bottom/right/transform anchoring to top+left
+    el.style.left      = r.left + 'px';
+    el.style.top       = r.top  + 'px';
+    el.style.right     = '';
+    el.style.bottom    = '';
+    el.style.transform = 'none';
+    document.body.classList.add('dragging');
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  function onMove(e) {
+    let nx = e.clientX - ox;
+    let ny = e.clientY - oy;
+    nx = Math.max(0, Math.min(window.innerWidth  - el.offsetWidth,  nx));
+    ny = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, ny));
+    el.style.left = nx + 'px';
+    el.style.top  = ny + 'px';
+  }
+
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.body.classList.remove('dragging');
+    savePanelPos(el.id, el.style.left, el.style.top);
+  }
+}
+
+function initDraggablePanels() {
+  loadPanelPositions();
+  const panels = ['hud-tl', 'hud-tc', 'chat-panel', 'action-panel', 'minimap-wrap', 'inv-wrap'];
+  for (const id of panels) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const handle = el.querySelector('.drag-handle');
+    if (handle) makeDraggable(el, handle);
+  }
+}
+
+initDraggablePanels();
 
 boot();
 </script>

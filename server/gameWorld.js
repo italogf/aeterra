@@ -4,6 +4,7 @@
 const { generateMap, T, SOLID, MONSTERS, MAP_W, MAP_H, findSafeSpawn, isSafeSpawnTile, calcMapRank, generateMapName, mapHasMonument } = require('./worldGen');
 const { calcDamage, rollCrit, applyExp } = require('./combat');
 const {
+  SKILL_DEFS,
   STATUS_DEFS,
   safeParseJson,
   createItem,
@@ -11,6 +12,7 @@ const {
   storeItem,
   countInventoryItem,
   consumeInventoryItem,
+  consumeMedicinalItem,
   refreshDerivedStats,
   serializePlayerState,
   grantDisciplineXp,
@@ -343,6 +345,7 @@ class GameWorld {
       skillXp: safeParseJson(char.skill_xp, {}),
       lifeSkills: safeParseJson(char.life_skills, {}),
       statusEffects: safeParseJson(char.status_effects, []),
+      skillCooldowns: {},
       familySlot: safeParseJson(char.family_slot, {}),
       lastMove: 0,
       lastAtk: 0,
@@ -455,6 +458,7 @@ class GameWorld {
       case 'interact': this._interact(ws, msg); break;
       case 'npc_chat': this._npcChat(ws, msg); break;
       case 'npc_service': this._npcService(ws, msg); break;
+      case 'use_item': this._useInventoryItem(ws, msg); break;
       case 'equip': this._equip(ws, msg); break;
       case 'unequip': this._unequip(ws, msg); break;
     }
@@ -648,7 +652,7 @@ class GameWorld {
       killerWs.send(JSON.stringify({ type: 'stamina_update', stamina: killer.maxStamina, maxStamina: killer.maxStamina }));
     }
 
-    unlocked.forEach(skill => killerWs.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(killerWs, unlocked);
 
     const delay = 30000 + Math.floor(Math.random() * 30000);
     setTimeout(() => {
@@ -826,7 +830,7 @@ class GameWorld {
     const unlocked = grantDisciplineXp(ws.player, 'civic', 8);
     this._refreshPlayerBuild(ws.player);
     ws.send(JSON.stringify({ type: 'chat', sender: npc.name, text: `${offer.name} saiu por ${offer.finalPrice} ouro${offer.discountPercent ? `, ja com ${offer.discountPercent}% de desconto` : ''}.`, color: '#7fb7a3', system: true }));
-    unlocked.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(ws, unlocked);
   }
 
   _acceptNpcQuest(ws, npc, questId) {
@@ -925,7 +929,7 @@ class GameWorld {
     this._refreshPlayerBuild(ws.player);
     ws.send(JSON.stringify({ type: 'loot', items: rewardLoot }));
     ws.send(JSON.stringify({ type: 'chat', sender: npc.name, text: `Bom trabalho. ${row.title} esta encerrada.`, color: '#7fb7a3', system: true }));
-    unlocked.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(ws, unlocked);
   }
 
   _pushInteractionContext(ws) {
@@ -1124,7 +1128,7 @@ class GameWorld {
 
     const progress = grantDisciplineXp(ws.player, 'arcane', 8);
     this._refreshPlayerBuild(ws.player);
-    if (progress?.length) progress.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(ws, progress);
   }
 
   _openChest(ws, tileIndex) {
@@ -1146,7 +1150,7 @@ class GameWorld {
     if (chestLoot.bonusStatus) this._applyPlayerStatus(player, chestLoot.bonusStatus, ws, 'chest');
 
     ws.send(JSON.stringify({ type: 'loot', items: [{ item: 'Ouro', qty: gold }, ...storedItems.map(item => ({ item: item.name, qty: item.qty || 1 }))] }));
-    unlocked.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(ws, unlocked);
   }
 
   _clearLand(ws, context) {
@@ -1320,7 +1324,7 @@ class GameWorld {
     this._refreshPlayerBuild(ws.player);
     this._pushPlayerState(ws.player, ws);
     ws.send(JSON.stringify({ type: 'chat', sender: 'Sistema', text: `${result.item.name} equipado.`, color: '#7a5e2a', system: true }));
-    unlocked.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    this._emitSkillUnlocks(ws, unlocked);
   }
 
   _unequip(ws, msg) {
@@ -1334,6 +1338,29 @@ class GameWorld {
     ws.send(JSON.stringify({ type: 'chat', sender: 'Sistema', text: `${result.item.name} removido do equipamento.`, color: '#7a5e2a', system: true }));
   }
 
+  _useInventoryItem(ws, msg) {
+    const index = Number(msg.index);
+    if (!Number.isInteger(index) || index < 0) {
+      ws.send(JSON.stringify({ type: 'error', msg: 'Indice de item invalido.' }));
+      return;
+    }
+    const result = consumeMedicinalItem(ws.player, index, getConfig('game.inventoryLimit'));
+    if (!result.ok) {
+      ws.send(JSON.stringify({ type: 'error', msg: result.error }));
+      return;
+    }
+
+    this._refreshPlayerBuild(ws.player);
+    this._pushPlayerState(ws.player, ws);
+    ws.send(JSON.stringify({
+      type: 'chat',
+      sender: 'Sistema',
+      text: `${result.item.name} usado: +${result.restoredHp} HP${result.restoredMp ? ` e +${result.restoredMp} MP` : ''}.`,
+      color: '#7fb7a3',
+      system: true,
+    }));
+  }
+
   _tick() {
     const now = Date.now();
     this._tickCount = (this._tickCount || 0) + 1;
@@ -1343,6 +1370,7 @@ class GameWorld {
       this._tickMonsters(room, now);
       this._tickNpcs(room, now);
       this._tickStatus(room, now);
+      this._tickAutoSkills(room, now);
       this._tickRegen(room, now);
       this._tickStamina(room);
     });
@@ -1371,6 +1399,18 @@ class GameWorld {
       this._refreshPlayerBuild(player);
       this._pushPlayerState(player, ws);
       if (player.hp <= 0) this._killPlayer(room, player, { id: 'status', name: 'as proprias feridas' });
+    });
+  }
+
+  _tickAutoSkills(room, now) {
+    if (this._tickCount % 8 !== 0) return;
+    room.players.forEach(player => {
+      const ws = this.sockets.get(player.charId);
+      if (!ws || ws.readyState !== 1) return;
+      const skills = player.skills || [];
+      for (const skillId of skills) {
+        if (this._tryAutoCastSkill(player, ws, skillId, now)) break;
+      }
     });
   }
 
@@ -1507,6 +1547,58 @@ class GameWorld {
     const nextMaxStamina = calcMaxStamina(player.level, player.spd);
     player.maxStamina = nextMaxStamina;
     player.stamina = refillStamina ? nextMaxStamina : Math.min(player.stamina || nextMaxStamina, nextMaxStamina);
+  }
+
+  _emitSkillUnlocks(ws, unlocked = []) {
+    if (!ws || ws.readyState !== 1 || !Array.isArray(unlocked) || !unlocked.length) return;
+    const now = Date.now();
+    unlocked.forEach(skill => ws.send(JSON.stringify({ type: 'skill_unlock', skill })));
+    unlocked.forEach(skill => this._tryAutoCastSkill(ws.player, ws, skill.id, now, true));
+  }
+
+  _isPlayerInCombat(player, room) {
+    if (!room || !player) return false;
+    for (const monster of room.monsters.values()) {
+      if (monster.disposition === 'neutral') continue;
+      const dist = Math.max(Math.abs(player.x - monster.x), Math.abs(player.y - monster.y));
+      if (dist <= 2) return true;
+    }
+    return false;
+  }
+
+  _tryAutoCastSkill(player, ws, skillId, now = Date.now(), ignoreCombat = false) {
+    if (!player || !ws || ws.readyState !== 1) return false;
+    const skill = SKILL_DEFS.find(entry => entry.id === skillId);
+    const autoCast = skill?.autoCast;
+    if (!autoCast) return false;
+
+    player.skillCooldowns = player.skillCooldowns || {};
+    if ((player.skillCooldowns[skillId] || 0) > now) return false;
+
+    const mpCost = Math.max(0, Number(autoCast.mpCost || 0));
+    if ((player.mp || 0) < mpCost) return false;
+    if (autoCast.requiresCombat && !ignoreCombat && !this._isPlayerInCombat(player, ws.room)) return false;
+
+    const hasStatus = (player.statusEffects || []).some(effect => effect.id === autoCast.statusId && (effect.expiresAt || 0) > now + 2000);
+    if (hasStatus) return false;
+
+    player.mp = Math.max(0, player.mp - mpCost);
+    player.skillCooldowns[skillId] = now + Math.max(1000, Number(autoCast.cooldownMs || 10000));
+
+    if (autoCast.statusId) {
+      this._applyPlayerStatus(player, autoCast.statusId, ws, `skill:${skillId}`);
+    } else {
+      this._pushPlayerState(player, ws);
+    }
+
+    ws.send(JSON.stringify({
+      type: 'chat',
+      sender: 'Sistema',
+      text: `${skill.name} foi ativada automaticamente.`,
+      color: '#7fb7a3',
+      system: true,
+    }));
+    return true;
   }
 
   _pushPlayerState(player, ws = this.sockets.get(player.charId)) {

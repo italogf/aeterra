@@ -41,6 +41,27 @@ function sumBonuses(target, source) {
   return target;
 }
 
+function scaleBonusValue(value, multiplier) {
+  const base = Number(value || 0);
+  if (base === 0) return 0;
+  const scaled = base * multiplier;
+  return scaled > 0 ? Math.ceil(scaled) : Math.floor(scaled);
+}
+
+const RARITY_EQUIP_MULTIPLIER = Object.freeze({
+  common: 1,
+  uncommon: 1.2,
+  rare: 1.45,
+  epic: 1.75,
+  legendary: 2.1,
+});
+
+const MEDICINAL_ITEM_EFFECTS = Object.freeze({
+  healing_herb: { healFlat: 18, healPercent: 0.08, mpFlat: 6 },
+  marsh_herb: { healFlat: 24, healPercent: 0.1, mpFlat: 8 },
+  moon_tuber: { healFlat: 14, healPercent: 0.05, mpFlat: 4 },
+});
+
 const ITEM_DEFS = Object.freeze({
   rusted_blade: {
     id: 'rusted_blade', name: 'Lamina Gasta', type: 'equipment', slot: 'weapon',
@@ -261,37 +282,44 @@ const SKILL_DEFS = Object.freeze([
   {
     id: 'blade_forms', name: 'Formas da Lamina', discipline: 'martial', threshold: 40,
     description: 'Treino marcial que refina o impacto de armas laminadas.',
-    passive: { atk: 2 }, affinity: ['blade', 'martial']
+    passive: { atk: 2 }, affinity: ['blade', 'martial'],
+    autoCast: { mpCost: 10, cooldownMs: 18000, statusId: 'focused', requiresCombat: true }
   },
   {
     id: 'guardian_stance', name: 'Postura do Guardiao', discipline: 'martial', threshold: 85,
     description: 'O corpo aprende a absorver impactos sem ceder terreno.',
-    passive: { def: 2, maxHp: 10 }, affinity: ['shield', 'armor', 'martial']
+    passive: { def: 2, maxHp: 10 }, affinity: ['shield', 'armor', 'martial'],
+    autoCast: { mpCost: 12, cooldownMs: 22000, statusId: 'warded', requiresCombat: true }
   },
   {
     id: 'fieldcraft', name: 'Oficio de Campo', discipline: 'survival', threshold: 35,
     description: 'O personagem reconhece rotas, presas e recursos.',
-    passive: { spd: 1, maxHp: 6 }, affinity: ['bow', 'survival', 'boots']
+    passive: { spd: 1, maxHp: 6 }, affinity: ['bow', 'survival', 'boots'],
+    autoCast: { mpCost: 8, cooldownMs: 18000, statusId: 'focused', requiresCombat: false }
   },
   {
     id: 'predator_focus', name: 'Foco do Predador', discipline: 'survival', threshold: 90,
     description: 'Cada ataque encontra janelas breves na defesa inimiga.',
-    passive: { atk: 2, spd: 1 }, affinity: ['bow', 'survival']
+    passive: { atk: 2, spd: 1 }, affinity: ['bow', 'survival'],
+    autoCast: { mpCost: 11, cooldownMs: 20000, statusId: 'focused', requiresCombat: true }
   },
   {
     id: 'sigil_study', name: 'Estudo de Sigilos', discipline: 'arcane', threshold: 40,
     description: 'Conhecimento ritual torna a energia mais obediente.',
-    passive: { maxMp: 14, atk: 1 }, affinity: ['focus', 'arcane']
+    passive: { maxMp: 14, atk: 1 }, affinity: ['focus', 'arcane'],
+    autoCast: { mpCost: 12, cooldownMs: 18000, statusId: 'warded', requiresCombat: false }
   },
   {
     id: 'rift_attunement', name: 'Sintonia de Fenda', discipline: 'arcane', threshold: 95,
     description: 'A mente se alinha com ecos do mundo fraturado.',
-    passive: { atk: 2, maxMp: 16 }, affinity: ['arcane', 'relic']
+    passive: { atk: 2, maxMp: 16 }, affinity: ['arcane', 'relic'],
+    autoCast: { mpCost: 14, cooldownMs: 22000, statusId: 'warded', requiresCombat: true }
   },
   {
     id: 'shadow_stride', name: 'Passo Velado', discipline: 'guile', threshold: 35,
     description: 'Movimentos menores e mais rapidos, quase silenciosos.',
-    passive: { spd: 2 }, affinity: ['dagger', 'guile', 'helmet']
+    passive: { spd: 2 }, affinity: ['dagger', 'guile', 'helmet'],
+    autoCast: { mpCost: 9, cooldownMs: 17000, statusId: 'focused', requiresCombat: false }
   },
   {
     id: 'cutpurse_instinct', name: 'Instinto de Beca', discipline: 'guile', threshold: 80,
@@ -301,12 +329,14 @@ const SKILL_DEFS = Object.freeze([
   {
     id: 'oathbound', name: 'Juramento Vinculante', discipline: 'faith', threshold: 45,
     description: 'Conviccao transforma dor em resistencia.',
-    passive: { def: 2, maxHp: 8 }, affinity: ['faith', 'mace', 'ring']
+    passive: { def: 2, maxHp: 8 }, affinity: ['faith', 'mace', 'ring'],
+    autoCast: { mpCost: 10, cooldownMs: 20000, statusId: 'blessed', requiresCombat: false }
   },
   {
     id: 'market_memory', name: 'Memoria de Mercado', discipline: 'civic', threshold: 35,
     description: 'Negociacao e leitura social moldam o papel do personagem.',
-    passive: { def: 1, maxMp: 8 }, affinity: ['civic', 'seal', 'ring']
+    passive: { def: 1, maxMp: 8 }, affinity: ['civic', 'seal', 'ring'],
+    autoCast: { mpCost: 8, cooldownMs: 24000, statusId: 'blessed', requiresCombat: false }
   }
 ]);
 
@@ -655,6 +685,15 @@ function countInventoryItem(inventory = [], itemId) {
     .reduce((sum, item) => sum + Math.max(1, Number(item.qty) || 1), 0);
 }
 
+function isMedicinalItem(item) {
+  if (!item) return false;
+  const itemId = item.itemId || item.name;
+  if (MEDICINAL_ITEM_EFFECTS[itemId]) return true;
+  const tags = Array.isArray(item.tags) ? item.tags : [];
+  if (tags.includes('herb')) return true;
+  return item.type === 'consumable';
+}
+
 function consumeInventoryItem(inventory = [], itemId, qty, maxSlots = 24) {
   let remaining = Math.max(1, Number(qty) || 1);
   const next = [];
@@ -683,6 +722,45 @@ function consumeInventoryItem(inventory = [], itemId, qty, maxSlots = 24) {
   };
 }
 
+function consumeMedicinalItem(player, index, maxSlots = 24) {
+  const inventory = normalizeInventory(player.inventory || [], maxSlots);
+  const item = inventory[index];
+  if (!item) return { ok: false, error: 'Item inexistente.' };
+  if (!isMedicinalItem(item)) return { ok: false, error: 'Esse item nao e medicinal.' };
+
+  const itemId = item.itemId || item.name;
+  const effect = MEDICINAL_ITEM_EFFECTS[itemId] || { healFlat: 12, healPercent: 0.06, mpFlat: 3 };
+  const maxHp = Math.max(1, Number(player.maxHp || player.baseMaxHp || 1));
+  const maxMp = Math.max(0, Number(player.maxMp || player.baseMaxMp || 0));
+  const hpBefore = Math.max(0, Number(player.hp || 0));
+  const mpBefore = Math.max(0, Number(player.mp || 0));
+
+  const healAmount = Math.max(1, Math.floor((effect.healFlat || 0) + maxHp * (effect.healPercent || 0)));
+  const mpAmount = Math.max(0, Number(effect.mpFlat || 0));
+  const nextHp = Math.min(maxHp, hpBefore + healAmount);
+  const nextMp = Math.min(maxMp, mpBefore + mpAmount);
+
+  if (nextHp <= hpBefore && nextMp <= mpBefore) {
+    return { ok: false, error: 'Voce ja esta com vida e mana cheias.' };
+  }
+
+  const consumed = consumeInventoryItem(inventory, itemId, 1, maxSlots);
+  if (!consumed.ok) return { ok: false, error: 'Falha ao consumir o item.' };
+
+  player.inventory = consumed.inventory;
+  player.hp = nextHp;
+  player.mp = nextMp;
+
+  return {
+    ok: true,
+    item,
+    restoredHp: Math.max(0, nextHp - hpBefore),
+    restoredMp: Math.max(0, nextMp - mpBefore),
+    hp: nextHp,
+    mp: nextMp,
+  };
+}
+
 function getStarterLoadout(profession, biome) {
   const matching = PROFESSION_LOADOUTS.find(entry => entry.match.test(String(profession || '')));
   const itemIds = matching ? matching.equipment : (DEFAULT_LOADOUT_BY_BIOME[biome] || ['rusted_blade']);
@@ -700,7 +778,14 @@ function getStarterLoadout(profession, biome) {
 
 function getEquipmentBonuses(equipment = {}) {
   const total = { atk: 0, def: 0, spd: 0, maxHp: 0, maxMp: 0 };
-  Object.values(equipment || {}).forEach(item => sumBonuses(total, item?.bonuses || {}));
+  Object.values(equipment || {}).forEach(item => {
+    if (!item?.bonuses) return;
+    const rarity = String(item.rarity || 'common').toLowerCase();
+    const multiplier = RARITY_EQUIP_MULTIPLIER[rarity] || 1;
+    Object.entries(item.bonuses).forEach(([key, value]) => {
+      total[key] = (total[key] || 0) + scaleBonusValue(value, multiplier);
+    });
+  });
   return total;
 }
 
@@ -1274,6 +1359,8 @@ module.exports = {
   storeItem,
   countInventoryItem,
   consumeInventoryItem,
+  consumeMedicinalItem,
+  isMedicinalItem,
   getStarterLoadout,
   refreshDerivedStats,
   serializePlayerState,
