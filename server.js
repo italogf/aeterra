@@ -237,15 +237,16 @@ app.post('/api/register', async (req, res) => {
 // ─────────────────────────── POST /api/login ───────────────────────────────
 app.post('/api/login', async (req, res) => {
   try {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.status(400).json({ error: 'Dados inválidos' });
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Dados inválidos' });
 
-    const acc = db.prepare('SELECT * FROM accounts WHERE username=? COLLATE NOCASE').get(String(username).trim());
-    if (!acc) return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+    const e = String(email).trim().toLowerCase();
+    const acc = db.prepare('SELECT * FROM accounts WHERE email=?').get(e);
+    if (!acc) return res.status(401).json({ error: 'E-mail ou senha incorretos' });
     if (acc.is_banned) return res.status(403).json({ error: 'Conta banida' });
 
     const valid = await bcrypt.compare(String(password), acc.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Usuário ou senha incorretos' });
+    if (!valid) return res.status(401).json({ error: 'E-mail ou senha incorretos' });
 
     const cooldown = getDeathCooldownState(acc);
     if (cooldown) {
@@ -264,13 +265,13 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/dev/reset-cooldown', async (req, res) => {
   if (!DEV_RESPAWN_ENABLED) return res.status(403).json({ error: 'Recurso indisponivel.' });
   try {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.status(400).json({ error: 'Dados invalidos' });
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Dados invalidos' });
 
-    const acc = db.prepare('SELECT * FROM accounts WHERE username=? COLLATE NOCASE').get(String(username).trim());
-    if (!acc) return res.status(401).json({ error: 'Usuario ou senha incorretos' });
+    const acc = db.prepare('SELECT * FROM accounts WHERE email=?').get(String(email).trim().toLowerCase());
+    if (!acc) return res.status(401).json({ error: 'E-mail ou senha incorretos' });
     const valid = await bcrypt.compare(String(password), acc.password_hash);
-    if (!valid) return res.status(401).json({ error: 'Usuario ou senha incorretos' });
+    if (!valid) return res.status(401).json({ error: 'E-mail ou senha incorretos' });
 
     db.prepare('UPDATE accounts SET death_cooldown_until=NULL WHERE id=?').run(acc.id);
     const token = jwt.sign({ accountId: acc.id, username: acc.username }, JWT_SECRET, { expiresIn: '7d' });

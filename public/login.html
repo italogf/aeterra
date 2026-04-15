@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-i18n-title="login.title">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aeterra: World Breaker — Entrar</title>
+<script src="/i18n.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
 <style>
@@ -145,6 +146,15 @@
   .ghost-btn:hover { border-color: #ccaa66; color: #f0d080; }
 
   .loading { text-align: center; font-size: .7rem; color: #5a4420; letter-spacing: .2em; display: none; }
+
+  .lang-toggle {
+    position: fixed; top: 14px; right: 14px;
+    background: #12100a88; border: 1px solid #3a2e14;
+    color: #7a5e2a; font-family: 'Cinzel', serif;
+    font-size: .6rem; letter-spacing: .15em; padding: 5px 11px;
+    cursor: pointer; transition: all .2s; z-index: 999;
+  }
+  .lang-toggle:hover { color: #c9a84c; border-color: #c9a84c44; }
 </style>
 </head>
 <body>
@@ -159,52 +169,56 @@
 
   <!-- Cooldown notice (shown on 24h death cooldown) -->
   <div class="cooldown-box" id="cooldownBox">
-    <div>Sua personagem encontrou o fim.</div>
-    <div>O mundo aguarda um novo portador do destino.</div>
+    <div data-i18n="login.cooldown.died">Sua personagem encontrou o fim.</div>
+    <div data-i18n="login.cooldown.waiting">O mundo aguarda um novo portador do destino.</div>
     <div class="timer" id="cooldownTimer"></div>
-    <div style="font-size:.55rem;color:#5a3a3a;margin-top:.6rem">O destino se renova em seu tempo.</div>
-    <button class="ghost-btn" id="devRespawnBtn" onclick="doDevRespawn()">RENASCER PARA TESTE</button>
+    <div style="font-size:.55rem;color:#5a3a3a;margin-top:.6rem" data-i18n="login.cooldown.renews">O destino se renova em seu tempo.</div>
+    <button class="ghost-btn" id="devRespawnBtn" onclick="doDevRespawn()" data-i18n="login.btn.devRespawn">RENASCER PARA TESTE</button>
   </div>
 
   <div class="tabs" id="tabs">
-    <button class="tab-btn active" onclick="showTab('login')">ENTRAR</button>
-    <button class="tab-btn"       onclick="showTab('register')">INVOCAR CONTA</button>
+    <button class="tab-btn active" onclick="showTab('login')" data-i18n="login.tab.login">ENTRAR</button>
+    <button class="tab-btn"       onclick="showTab('register')" data-i18n="login.tab.register">INVOCAR CONTA</button>
   </div>
 
   <!-- LOGIN -->
   <div class="tab-panel active" id="panel-login">
     <div class="error-box" id="login-err"></div>
-    <label for="l-user">IDENTIFICAÇÃO</label>
-    <input type="text" id="l-user" placeholder="Seu nome no reino" autocomplete="username">
-    <label for="l-pass">SENHA ARCANA</label>
+    <label for="l-user" data-i18n="login.label.email">E-MAIL</label>
+    <input type="email" id="l-user" data-i18n-placeholder="login.placeholder.email" placeholder="Seu e-mail" autocomplete="email">
+    <label for="l-pass" data-i18n="login.label.password">SENHA ARCANA</label>
     <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
-    <div class="loading" id="login-loading">VERIFICANDO...</div>
-    <button class="btn" onclick="doLogin()">▶  ADENTRAR O MUNDO</button>
+    <div class="loading" id="login-loading" data-i18n="login.loading.login">VERIFICANDO...</div>
+    <button class="btn" onclick="doLogin()" data-i18n="login.btn.login">▶  ADENTRAR O MUNDO</button>
   </div>
 
   <!-- REGISTER -->
   <div class="tab-panel" id="panel-register">
     <div class="error-box" id="reg-err"></div>
     <div class="info-box"  id="reg-ok"></div>
-    <label for="r-user">IDENTIFICAÇÃO</label>
-    <input type="text" id="r-user" placeholder="3–20 caracteres" autocomplete="username">
-    <label for="r-email">E-MAIL</label>
+    <label for="r-user" data-i18n="login.label.username">IDENTIFICAÇÃO</label>
+    <input type="text" id="r-user" data-i18n-placeholder="login.placeholder.minChars" placeholder="3–20 caracteres" autocomplete="username">
+    <label for="r-email" data-i18n="login.label.email">E-MAIL</label>
     <input type="email" id="r-email" placeholder="E-mail" autocomplete="email">
-    <label for="r-pass">SENHA ARCANA</label>
-    <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
-    <label for="r-pass2">CONFIRMAR SENHA</label>
-    <input type="password" id="r-pass2" placeholder="Repita a senha" autocomplete="new-password">
-    <div class="loading" id="reg-loading">INSCREVENDO...</div>
-    <button class="btn" onclick="doRegister()">✦  INSCREVER NO DESTINO</button>
+    <label for="r-pass" data-i18n="login.label.password">SENHA ARCANA</label>
+    <input type="password" id="r-pass" data-i18n-placeholder="login.placeholder.minPass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+    <label for="r-pass2" data-i18n="login.label.confirmPassword">CONFIRMAR SENHA</label>
+    <input type="password" id="r-pass2" data-i18n-placeholder="login.placeholder.repeatPass" placeholder="Repita a senha" autocomplete="new-password">
+    <div class="loading" id="reg-loading" data-i18n="login.loading.register">INSCREVENDO...</div>
+    <button class="btn" onclick="doRegister()" data-i18n="login.btn.register">✦  INSCREVER NO DESTINO</button>
   </div>
 
-  <div class="footer-note">
-    Somente os dignos persistem. <a href="/concept">Conhecer o mundo.</a>
+  <div class="footer-note" id="footer-note">
+    <span data-i18n="login.footer">Somente os dignos persistem.</span> <a href="/concept" data-i18n="login.footer.link">Conhecer o mundo.</a>
   </div>
 </div>
 
 <script>
-  let lastLoginAttempt = { username: '', password: '' };
+  // Apply i18n on load
+  applyI18n();
+  injectLangToggle();
+
+  let lastLoginAttempt = { email: '', password: '' };
 
   function showTab(name) {
     document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['login','register'][i] === name));
@@ -238,28 +252,28 @@
 
   async function doLogin() {
     clearErrors();
-    const username = document.getElementById('l-user').value.trim();
+    const email    = document.getElementById('l-user').value.trim();
     const password = document.getElementById('l-pass').value;
-    if (!username || !password) return showErr('login-err','Preencha todos os campos.');
-    lastLoginAttempt = { username, password };
+    if (!email || !password) return showErr('login-err', t('login.err.fillAll'));
+    lastLoginAttempt = { email, password };
 
     setLoading('login-loading', true);
     try {
-      const r  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}) });
+      const r  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email, password}) });
       const d  = await r.json();
 
       if (!r.ok) {
         if (d.cooldown) {
           showCooldown(d.until, d.error, d.allowDevRespawn);
         } else {
-          showErr('login-err', d.error || 'Erro ao entrar.');
+          showErr('login-err', d.error || t('login.err.loginFailed'));
         }
         return;
       }
 
       persistAuthState(d);
       window.location.href = '/game.html';
-    } catch { showErr('login-err', 'Servidor inacessível.'); }
+    } catch { showErr('login-err', t('login.err.offline')); }
     finally { setLoading('login-loading', false); }
   }
 
@@ -269,19 +283,19 @@
     const email    = document.getElementById('r-email').value.trim();
     const password = document.getElementById('r-pass').value;
     const password2 = document.getElementById('r-pass2').value;
-    if (!username || !email || !password || !password2) return showErr('reg-err','Preencha todos os campos.');
-    if (password !== password2) return showErr('reg-err','As senhas não coincidem.');
+    if (!username || !email || !password || !password2) return showErr('reg-err', t('login.err.fillAll'));
+    if (password !== password2) return showErr('reg-err', t('login.err.passwordMismatch'));
 
     setLoading('reg-loading', true);
     try {
       const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, email, password}) });
       const d = await r.json();
 
-      if (!r.ok) return showErr('reg-err', d.error || 'Erro ao registrar.');
+      if (!r.ok) return showErr('reg-err', d.error || t('login.err.registerFailed'));
 
       persistAuthState(d);
       window.location.href = '/game.html';
-    } catch { showErr('reg-err', 'Servidor inacessível.'); }
+    } catch { showErr('reg-err', t('login.err.offline')); }
     finally { setLoading('reg-loading', false); }
   }
 
@@ -290,12 +304,13 @@
 
   // Show admin shortcut if previous session was GM
   if (localStorage.getItem('aet_is_gm') === '1') {
-    const note = document.querySelector('.footer-note');
+    const note = document.getElementById('footer-note');
     if (note) {
       note.appendChild(document.createTextNode(' · '));
       const a = document.createElement('a');
       a.href = '/admin.html';
-      a.textContent = 'Painel GM';
+      a.setAttribute('data-i18n', 'login.footer.gm');
+      a.textContent = t('login.footer.gm');
       note.appendChild(a);
     }
   }
@@ -319,7 +334,7 @@
   }
 
   async function doDevRespawn() {
-    if (!lastLoginAttempt.username || !lastLoginAttempt.password) return;
+    if (!lastLoginAttempt.email || !lastLoginAttempt.password) return;
     try {
       const r = await fetch('/api/dev/reset-cooldown', {
         method: 'POST',
@@ -339,7 +354,7 @@
     const end = new Date(until.replace(' ','T') + (until.includes('Z') ? '' : 'Z'));
     const tick = () => {
       const diff = end - new Date();
-      if (diff <= 0) { document.getElementById('cooldownTimer').textContent = 'O destino renova-se agora.'; return; }
+      if (diff <= 0) { document.getElementById('cooldownTimer').textContent = t('login.cooldown.timerExpired'); return; }
       const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
       document.getElementById('cooldownTimer').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
       setTimeout(tick, 1000);
