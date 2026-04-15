@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: |
+          node --check server.js
+          node --check server/db.js
+          node --check server/gameWorld.js
+          node --check server/gameSystems.js
+          node --check server/combat.js
+          node --check server/worldGen.js
+          node --check server/npcAI.js
+
+      - name: Smoke tests (world generation)
+        run: npm run smoke:world
+        env:
+          PORT: 3099
+          JWT_SECRET: ci-test-secret-not-for-production
+          NODE_ENV: development
+          ALLOW_DEV_RESPAWN: 1
+          MIN_GROWTH_MS: 100

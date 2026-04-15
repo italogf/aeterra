@@ -1,0 +1,19 @@
+{
+  "name": "aeterra",
+  "version": "0.1.0-alpha",
+  "description": "Aeterra: World Breaker — MMORPG Hardcore Procedural",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "smoke:world": "node scripts/smoke-world.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "ws": "^8.16.0"
+  }
+}

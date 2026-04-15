@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aeterra: World Breaker &mdash; Concilium GM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --gold:        #c9a84c;
+  --gold-dim:    #7a5e2a;
+  --gold-faint:  #3a2e14;
+  --bg:          #080704;
+  --bg-panel:    #0e0c07;
+  --bg-mid:      #12100a;
+  --bg-input:    #0a0800;
+  --border:      #2a2010;
+  --border-hi:   #3a2e14;
+  --err:         #cc4444;
+  --err-bg:      #1a0808;
+  --err-border:  #4a1010;
+  --ok:          #44cc44;
+  --ok-bg:       #081408;
+  --ok-border:   #104a10;
+  --warn:        #cc9944;
+}
+
+body {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+}
+
+/* ── Centering screens ──────────────────────────────── */
+
+.scr-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+.loading-box, .denied-box {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.logo-deco {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: 1.8rem;
+  letter-spacing: .2em;
+  color: var(--gold);
+  text-shadow: 0 0 30px #c9a84c33;
+}
+
+.logo-sub {
+  font-size: .55rem;
+  letter-spacing: .45em;
+  color: var(--gold-dim);
+  margin-top: .35rem;
+}
+
+.ornament {
+  color: var(--gold-faint);
+  letter-spacing: .3em;
+  margin: 1.2rem 0;
+  font-size: .9rem;
+}
+
+.loading-pulse {
+  font-size: .6rem;
+  letter-spacing: .22em;
+  color: var(--gold-dim);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+.denied-msg {
+  font-size: .72rem;
+  color: var(--gold-dim);
+  letter-spacing: .05em;
+  line-height: 1.7;
+  margin-bottom: 1.8rem;
+  max-width: 380px;
+}
+
+.btn-back {
+  display: inline-block;
+  padding: .6rem 1.6rem;
+  background: var(--bg-mid);
+  border: 1px solid var(--border-hi);
+  color: var(--gold);
+  font-family: 'Cinzel', serif;
+  font-size: .68rem;
+  letter-spacing: .18em;
+  text-decoration: none;
+  transition: border-color .2s;
+}
+.btn-back:hover { border-color: var(--gold); }
+
+/* ── App shell ──────────────────────────────────────── */
+
+#scr-app {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .55rem 1.2rem;
+  background: var(--bg-mid);
+  border-bottom: 1px solid var(--gold-faint);
+  flex-shrink: 0;
+}
+
+.header-brand {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+}
+.brand-title {
+  font-family: 'Cinzel Decorative', serif;
+  font-size: .9rem;
+  letter-spacing: .15em;
+  color: var(--gold);
+}
+.brand-sub {
+  font-size: .48rem;
+  letter-spacing: .35em;
+  color: var(--gold-dim);
+}
+
+.header-gm {
+  font-size: .58rem;
+  letter-spacing: .14em;
+  color: var(--gold-dim);
+}
+
+.header-nav {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+}
+
+.nav-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--gold-dim);
+  font-family: 'Cinzel', serif;
+  font-size: .58rem;
+  letter-spacing: .12em;
+  padding: .28rem .7rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: border-color .2s, color .2s;
+}
+.nav-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Toolbar ────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .45rem 1.2rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.toolbar-left { display: flex; align-items: center; gap: 1rem; }
+.toolbar-right { display: flex; gap: .45rem; }
+
+.pending-label {
+  font-size: .58rem;
+  letter-spacing: .12em;
+  color: var(--warn);
+  min-width: 1px;
+}
+
+.tool-btn {
+  padding: .38rem .85rem;
+  background: var(--bg-mid);
+  border: 1px solid var(--border-hi);
+  color: var(--gold-dim);
+  font-family: 'Cinzel', serif;
+  font-size: .6rem;
+  letter-spacing: .12em;
+  cursor: pointer;
+  transition: border-color .2s, color .2s;
+}
+.tool-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+.tool-btn:disabled { opacity: .3; cursor: not-allowed; }
+
+.tool-btn-save {
+  border-color: #6a5020;
+  color: var(--gold);
+  background: linear-gradient(135deg, #1a1408, #291e08);
+}
+.tool-btn-save:not(:disabled):hover {
+  background: linear-gradient(135deg, #221c0c, #3a2e10);
+  border-color: var(--gold);
+}
+.tool-btn-save:not(:disabled) { opacity: 1; }
+
+/* ── Main layout ────────────────────────────────────── */
+
+.app-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  overflow: hidden;
+}
+
+.panel-config {
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hi) transparent;
+}
+
+.panel-audit {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hi) transparent;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-hdr {
+  padding: .5rem .9rem;
+  font-size: .55rem;
+  letter-spacing: .22em;
+  color: var(--gold-dim);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.mini-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--gold-dim);
+  font-size: .65rem;
+  padding: 0 .4rem;
+  cursor: pointer;
+  line-height: 1.5;
+  transition: border-color .2s, color .2s;
+}
+.mini-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Config category sections ───────────────────────── */
+
+.cat-section {
+  border-bottom: 1px solid var(--border);
+}
+
+.cat-section > summary {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .5rem .9rem;
+  background: #0d0b06;
+  cursor: pointer;
+  list-style: none;
+  font-size: .58rem;
+  letter-spacing: .2em;
+  color: var(--gold);
+  user-select: none;
+  transition: background .15s;
+}
+.cat-section > summary:hover { background: #141108; }
+.cat-section > summary::-webkit-details-marker { display: none; }
+.cat-chevron {
+  font-size: .48rem;
+  color: var(--gold-dim);
+  display: inline-block;
+  transition: transform .2s;
+  width: .7rem;
+}
+.cat-section[open] .cat-chevron { transform: rotate(90deg); }
+
+.cat-count {
+  margin-left: auto;
+  font-size: .5rem;
+  color: var(--gold-dim);
+  letter-spacing: .1em;
+}
+.cat-count--dirty { color: var(--warn); }
+
+/* ── Config row ─────────────────────────────────────── */
+
+.cfg-row {
+  padding: .65rem .9rem;
+  border-bottom: 1px solid #14110a;
+  border-left: 3px solid transparent;
+  transition: border-left-color .2s;
+}
+.cfg-row:last-child { border-bottom: none; }
+.cfg-row--dirty { border-left-color: var(--warn); }
+.cfg-row--ok    { border-left-color: var(--ok); }
+.cfg-row--err   { border-left-color: var(--err); }
+
+.cfg-meta {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  flex-wrap: wrap;
+  margin-bottom: .3rem;
+}
+
+.cfg-key {
+  font-family: 'Courier New', monospace;
+  font-size: .73rem;
+  color: var(--gold);
+  letter-spacing: .02em;
+}
+
+.badge {
+  font-size: .42rem;
+  letter-spacing: .1em;
+  padding: 2px 4px;
+  font-family: 'Cinzel', serif;
+  border-radius: 1px;
+  white-space: nowrap;
+}
+.badge-type    { background: #0a0a1a; border: 1px solid #22225a; color: #7090d0; }
+.badge-restart { background: #1a0808; border: 1px solid #581010; color: #cc6644; }
+.badge-live    { background: #071510; border: 1px solid #0e4822; color: #44cc80; }
+
+.cfg-desc {
+  font-size: .58rem;
+  color: #5a4a28;
+  letter-spacing: .03em;
+  line-height: 1.55;
+  margin-bottom: .4rem;
+}
+
+.cfg-input-row {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.cfg-input {
+  flex: 1;
+  min-width: 0;
+  padding: .32rem .55rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  font-family: 'Courier New', monospace;
+  font-size: .72rem;
+  outline: none;
+  transition: border-color .2s;
+}
+.cfg-input:focus { border-color: #c9a84c44; }
+.cfg-input[type=number] { max-width: 130px; }
+
+.cfg-textarea {
+  flex: 1;
+  min-width: 0;
+  padding: .32rem .55rem;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  font-family: 'Courier New', monospace;
+  font-size: .68rem;
+  outline: none;
+  resize: vertical;
+  min-height: 64px;
+  transition: border-color .2s;
+}
+.cfg-textarea:focus { border-color: #c9a84c44; }
+
+/* ── Boolean toggle ─────────────────────────────────── */
+
+.cfg-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  cursor: pointer;
+  user-select: none;
+}
+.cfg-toggle input[type=checkbox] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.toggle-track {
+  width: 36px;
+  height: 18px;
+  background: #1a1408;
+  border: 1px solid var(--border-hi);
+  border-radius: 9px;
+  position: relative;
+  transition: background .2s, border-color .2s;
+  flex-shrink: 0;
+}
+.cfg-toggle input:checked + .toggle-track {
+  background: #2e2208;
+  border-color: #c9a84c55;
+}
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--gold-dim);
+  border-radius: 50%;
+  transition: left .2s, background .2s;
+}
+.cfg-toggle input:checked + .toggle-track .toggle-thumb {
+  left: 20px;
+  background: var(--gold);
+}
+.toggle-lbl {
+  font-size: .58rem;
+  letter-spacing: .1em;
+  color: var(--gold-dim);
+  min-width: 42px;
+}
+
+/* ── Status badge ───────────────────────────────────── */
+
+.cfg-status {
+  font-size: .52rem;
+  letter-spacing: .1em;
+  white-space: nowrap;
+  min-width: 62px;
+}
+.cfg-status--dirty { color: var(--warn); }
+.cfg-status--ok    { color: var(--ok); }
+.cfg-status--err   { color: var(--err); }
+
+/* ── Audit table ────────────────────────────────────── */
+
+.audit-wrap { flex: 1; overflow-y: auto; }
+
+.audit-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.audit-table th {
+  padding: .35rem .6rem;
+  text-align: left;
+  font-size: .46rem;
+  font-weight: 400;
+  letter-spacing: .12em;
+  color: var(--gold-dim);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+}
+
+.audit-table td {
+  padding: .32rem .6rem;
+  border-bottom: 1px solid #14110a;
+  font-family: 'Courier New', monospace;
+  font-size: .56rem;
+  color: #7a6840;
+  vertical-align: top;
+  max-width: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.audit-table tr:hover td { background: #0f0d07; }
+
+.audit-ts    { color: #4a3a1e; white-space: nowrap; }
+.audit-admin { color: #8a6a3a; }
+.audit-key   { color: var(--gold-dim); }
+.audit-val   { max-width: 68px; }
+
+.empty-note {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  font-size: .58rem;
+  letter-spacing: .15em;
+  color: var(--gold-faint);
+}
+
+/* ── Toast ──────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  bottom: 1.4rem;
+  right: 1.4rem;
+  padding: .55rem .95rem;
+  font-size: .62rem;
+  letter-spacing: .1em;
+  z-index: 200;
+  display: none;
+  opacity: 1;
+  transition: opacity .3s;
+}
+.toast--ok  { background: var(--ok-bg);  border: 1px solid var(--ok-border);  color: var(--ok); }
+.toast--err { background: var(--err-bg); border: 1px solid var(--err-border); color: var(--err); }
+
+/* ── Responsive ─────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  .app-layout {
+    grid-template-columns: 1fr;
+    overflow: visible;
+    flex: 1;
+  }
+  .panel-config { border-right: none; border-bottom: 1px solid var(--border); max-height: 60vh; }
+  .panel-audit  { max-height: 40vh; }
+}
+</style>
+</head>
+<body>
+
+<!-- Screen: checking access -->
+<div class="scr-center" id="scr-loading">
+  <div class="loading-box">
+    <div class="logo-deco">AETERRA</div>
+    <div class="logo-sub">CONCILIUM GM</div>
+    <div class="ornament">&#10038; &#8212;&#8212;&#8212; &#10038; &#8212;&#8212;&#8212; &#10038;</div>
+    <div class="loading-pulse" id="load-msg">VERIFICANDO ACESSO...</div>
+  </div>
+</div>
+
+<!-- Screen: access denied -->
+<div class="scr-center" id="scr-denied" style="display:none">
+  <div class="denied-box">
+    <div class="logo-deco" style="color:#cc4444;text-shadow:0 0 20px #cc000033">ACESSO NEGADO</div>
+    <div class="ornament">&#8212;&#8212;&#8212; &#10038; &#8212;&#8212;&#8212;</div>
+    <p class="denied-msg" id="denied-msg">Apenas Guardioes do Mundo podem acessar este painel.</p>
+    <a href="/login.html" class="btn-back">&#9668; VOLTAR AO LOGIN</a>
+  </div>
+</div>
+
+<!-- Screen: main app -->
+<div id="scr-app" style="display:none">
+
+  <header class="app-header">
+    <div class="header-brand">
+      <span class="brand-title">CONCILIUM GM</span>
+      <span class="brand-sub">AETERRA</span>
+    </div>
+    <span class="header-gm" id="gm-name"></span>
+    <nav class="header-nav">
+      <a href="/game.html" class="nav-btn">&#9658; JOGO</a>
+      <button class="nav-btn" onclick="doLogout()">SAIR</button>
+    </nav>
+  </header>
+
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="pending-label" id="pending-label"></span>
+    </div>
+    <div class="toolbar-right">
+      <button class="tool-btn" onclick="loadAll()" title="Descartar alteracoes locais e recarregar do servidor">
+        &#8635; RECARREGAR
+      </button>
+      <button class="tool-btn tool-btn-save" id="save-btn" onclick="saveChanges()" disabled>
+        SALVAR ALTERACOES
+      </button>
+    </div>
+  </div>
+
+  <div class="app-layout">
+
+    <!-- Left: configurations -->
+    <div class="panel-config">
+      <div class="panel-hdr">
+        <span>CONFIGURACOES DO SERVIDOR</span>
+        <span id="config-summary" style="font-size:.5rem;color:var(--gold-faint)"></span>
+      </div>
+      <div id="config-list"></div>
+    </div>
+
+    <!-- Right: audit log -->
+    <div class="panel-audit">
+      <div class="panel-hdr">
+        <span>AUDITORIA RECENTE</span>
+        <button class="mini-btn" onclick="loadAudit()" title="Atualizar auditoria">&#8635;</button>
+      </div>
+      <div class="audit-wrap">
+        <div id="audit-list"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+const API = {
+  _token() { return localStorage.getItem('aet_token') || ''; },
+  _hdrs(extra) {
+    return Object.assign({ 'Authorization': `Bearer ${this._token()}` }, extra || {});
+  },
+  async get(path) {
+    const res = await fetch(path, { headers: this._hdrs() });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const e = new Error(body.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      throw e;
+    }
+    return res.json();
+  },
+  async post(path, body) {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: this._hdrs({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) {
+      const b = await res.json().catch(() => ({}));
+      const e = new Error(b.error || `HTTP ${res.status}`);
+      e.status = res.status;
+      throw e;
+    }
+    return res.json();
+  }
+};
+
+let configs  = [];
+let pending  = new Map();
+
+function encodeHTML(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function showScreen(id) {
+  ['scr-loading', 'scr-denied', 'scr-app'].forEach(s => {
+    document.getElementById(s).style.display = (s === id) ? '' : 'none';
+  });
+}
+
+async function init() {
+  if (!localStorage.getItem('aet_token')) {
+    document.getElementById('denied-msg').textContent =
+      'Nenhum token de autenticacao encontrado. Faca login como GM primeiro.';
+    showScreen('scr-denied');
+    return;
+  }
+  try {
+    const session = await API.get('/api/admin/session');
+    const nameEl  = document.getElementById('gm-name');
+    const name    = session.username || session.name || '';
+    nameEl.textContent = name ? 'GM: ' + name : '';
+    showScreen('scr-app');
+    await loadAll();
+  } catch (err) {
+    const denied = document.getElementById('denied-msg');
+    if (err.status === 401 || err.status === 403) {
+      denied.textContent = 'Acesso restrito a Guardioes do Mundo. Verifique sua conta GM.';
+    } else {
+      denied.textContent = 'Erro ao verificar sessao: ' + err.message;
+    }
+    showScreen('scr-denied');
+  }
+}
+
+async function loadAll() {
+  await Promise.allSettled([loadConfigs(), loadAudit()]);
+}
+
+async function loadConfigs() {
+  try {
+    const data = await API.get('/api/admin/config');
+    configs = Array.isArray(data) ? data : (data.configs || []);
+    pending.clear();
+    renderConfigs();
+    updateToolbar();
+  } catch (err) {
+    showToast('Erro ao carregar configs: ' + err.message, false);
+  }
+}
+
+async function loadAudit() {
+  try {
+    const data    = await API.get('/api/admin/config/audit?limit=50');
+    const entries = Array.isArray(data) ? data : (data.entries || data.audit || data.logs || []);
+    renderAudit(entries);
+  } catch {
+    const list = document.getElementById('audit-list');
+    list.textContent = '';
+    const div = document.createElement('div');
+    div.className = 'empty-note';
+    div.textContent = 'Auditoria indisponivel.';
+    list.appendChild(div);
+  }
+}
+
+function renderConfigs() {
+  const grouped = {};
+  for (const cfg of configs) {
+    const cat = String(cfg.category || 'geral');
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(cfg);
+  }
+
+  const list = document.getElementById('config-list');
+  list.textContent = '';
+
+  const cats = Object.keys(grouped).sort();
+
+  const summary = document.getElementById('config-summary');
+  summary.textContent = configs.length + ' configs · ' + cats.length + ' categorias';
+
+  if (cats.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'empty-note';
+    div.textContent = 'Nenhuma configuracao disponivel.';
+    list.appendChild(div);
+    return;
+  }
+
+  for (const cat of cats) {
+    list.appendChild(buildSection(cat, grouped[cat]));
+  }
+}
+
+function buildSection(cat, items) {
+  const details = document.createElement('details');
+  details.open  = true;
+  details.className  = 'cat-section';
+  details.dataset.cat = cat;
+
+  const summary  = document.createElement('summary');
+  const chevron  = document.createElement('span');
+  chevron.className  = 'cat-chevron';
+  chevron.textContent = '\u25BA';
+  summary.appendChild(chevron);
+
+  const label = document.createElement('span');
+  label.textContent = cat.replace(/_/g, ' ').toUpperCase();
+  summary.appendChild(label);
+
+  const count = document.createElement('span');
+  count.className = 'cat-count';
+  count.id = 'cat-count-' + cat;
+  count.textContent = items.length + ' item' + (items.length !== 1 ? 's' : '');
+  summary.appendChild(count);
+
+  details.appendChild(summary);
+
+  for (const cfg of items) {
+    details.appendChild(buildRow(cfg));
+  }
+  return details;
+}
+
+function buildRow(cfg) {
+  const row = document.createElement('div');
+  row.className    = 'cfg-row';
+  row.dataset.key  = cfg.key;
+
+  const meta = document.createElement('div');
+  meta.className = 'cfg-meta';
+
+  const keyEl = document.createElement('span');
+  keyEl.className = 'cfg-key';
+  keyEl.textContent = cfg.key;
+  meta.appendChild(keyEl);
+
+  const typeStr = String(cfg.type || 'string').toLowerCase();
+  const typeBadge = document.createElement('span');
+  typeBadge.className = 'badge badge-type';
+  typeBadge.textContent = typeStr.toUpperCase();
+  meta.appendChild(typeBadge);
+
+  if (cfg.requiresRestart) {
+    const b = document.createElement('span');
+    b.className = 'badge badge-restart';
+    b.title = 'Requer reinicio do servidor para ter efeito';
+    b.textContent = 'RESTART';
+    meta.appendChild(b);
+  }
+
+  if (cfg.runtimeEditable) {
+    const b = document.createElement('span');
+    b.className = 'badge badge-live';
+    b.title = 'Aplicavel em tempo de execucao sem reinicio';
+    b.textContent = 'LIVE';
+    meta.appendChild(b);
+  }
+
+  row.appendChild(meta);
+
+  if (cfg.description) {
+    const desc = document.createElement('p');
+    desc.className = 'cfg-desc';
+    desc.textContent = cfg.description;
+    row.appendChild(desc);
+  }
+
+  const inputRow = document.createElement('div');
+  inputRow.className = 'cfg-input-row';
+  inputRow.appendChild(buildInput(cfg));
+
+  const status = document.createElement('span');
+  status.className = 'cfg-status';
+  status.dataset.statusFor = cfg.key;
+  inputRow.appendChild(status);
+
+  row.appendChild(inputRow);
+  return row;
+}
+
+function buildInput(cfg) {
+  const type = String(cfg.type || 'string').toLowerCase();
+
+  if (type === 'boolean') {
+    const label = document.createElement('label');
+    label.className = 'cfg-toggle';
+    label.title = String(cfg.key);
+
+    const cb = document.createElement('input');
+    cb.type    = 'checkbox';
+    cb.checked = cfg.value === true || cfg.value === 'true' || cfg.value === 1;
+    cb.dataset.inputFor = cfg.key;
+
+    const track = document.createElement('span');
+    track.className = 'toggle-track';
+    const thumb = document.createElement('span');
+    thumb.className = 'toggle-thumb';
+    track.appendChild(thumb);
+
+    const lbl = document.createElement('span');
+    lbl.className   = 'toggle-lbl';
+    lbl.textContent = cb.checked ? 'ATIVO' : 'INATIVO';
+
+    cb.addEventListener('change', () => {
+      lbl.textContent = cb.checked ? 'ATIVO' : 'INATIVO';
+      onFieldChange(cfg, cb.checked);
+    });
+
+    label.appendChild(cb);
+    label.appendChild(track);
+    label.appendChild(lbl);
+    return label;
+  }
+
+  if (type === 'json') {
+    const ta = document.createElement('textarea');
+    ta.className = 'cfg-textarea';
+    ta.dataset.inputFor = cfg.key;
+    try {
+      ta.value = typeof cfg.value === 'string'
+        ? cfg.value
+        : JSON.stringify(cfg.value, null, 2);
+    } catch { ta.value = String(cfg.value ?? ''); }
+    ta.addEventListener('input', () => onFieldChange(cfg, ta.value));
+    return ta;
+  }
+
+  const input = document.createElement('input');
+  input.type  = type === 'number' ? 'number' : 'text';
+  input.className = 'cfg-input';
+  input.dataset.inputFor = cfg.key;
+  input.value = cfg.value !== undefined && cfg.value !== null ? String(cfg.value) : '';
+  input.addEventListener('input', () => onFieldChange(cfg, input.value));
+  return input;
+}
+
+function origStr(cfg) {
+  const type = String(cfg.type || 'string').toLowerCase();
+  if (type === 'boolean')
+    return String(cfg.value === true || cfg.value === 'true' || cfg.value === 1);
+  if (type === 'json') {
+    try {
+      return typeof cfg.value === 'string' ? cfg.value : JSON.stringify(cfg.value);
+    } catch { return String(cfg.value ?? ''); }
+  }
+  return cfg.value !== undefined && cfg.value !== null ? String(cfg.value) : '';
+}
+
+function onFieldChange(cfg, newValue) {
+  if (String(newValue) !== origStr(cfg)) {
+    pending.set(cfg.key, newValue);
+    setRowState(cfg.key, 'dirty');
+    setStatus(cfg.key, 'MODIFICADO', 'dirty');
+  } else {
+    pending.delete(cfg.key);
+    setRowState(cfg.key, '');
+    setStatus(cfg.key, '', '');
+  }
+  updateToolbar();
+  updateCatCounts();
+}
+
+function setRowState(key, state) {
+  const row = document.querySelector(`.cfg-row[data-key="${CSS.escape(key)}"]`);
+  if (!row) return;
+  row.classList.remove('cfg-row--dirty', 'cfg-row--ok', 'cfg-row--err');
+  if (state) row.classList.add('cfg-row--' + state);
+}
+
+function setStatus(key, msg, state) {
+  const el = document.querySelector(`[data-status-for="${CSS.escape(key)}"]`);
+  if (!el) return;
+  el.textContent = msg;
+  el.className   = 'cfg-status' + (state ? ' cfg-status--' + state : '');
+}
+
+function updateToolbar() {
+  const n       = pending.size;
+  const btn     = document.getElementById('save-btn');
+  const label   = document.getElementById('pending-label');
+  btn.disabled  = n === 0;
+  btn.textContent = n > 0 ? `SALVAR ALTERACOES (${n})` : 'SALVAR ALTERACOES';
+  label.textContent = n > 0
+    ? `${n} alteracao${n !== 1 ? 'es' : ''} pendente${n !== 1 ? 's' : ''} — nao salvas`
+    : '';
+}
+
+function updateCatCounts() {
+  document.querySelectorAll('[id^="cat-count-"]').forEach(el => {
+    const cat   = el.id.slice('cat-count-'.length);
+    const items = configs.filter(c => String(c.category || 'geral') === cat);
+    const dirty = items.filter(c => pending.has(c.key)).length;
+    el.textContent = dirty > 0
+      ? `${items.length} items · ${dirty} mod.`
+      : `${items.length} item${items.length !== 1 ? 's' : ''}`;
+    el.className = 'cat-count' + (dirty > 0 ? ' cat-count--dirty' : '');
+  });
+}
+
+async function saveChanges() {
+  if (pending.size === 0) return;
+
+  const changes    = [];
+  const localErrors = [];
+
+  for (const [key, rawVal] of pending) {
+    const cfg  = configs.find(c => c.key === key);
+    const type = String((cfg && cfg.type) || 'string').toLowerCase();
+    let value  = rawVal;
+
+    if (type === 'number') {
+      value = Number(rawVal);
+      if (isNaN(value)) {
+        setRowState(key, 'err');
+        setStatus(key, 'INVALIDO', 'err');
+        localErrors.push(key);
+        continue;
+      }
+    } else if (type === 'boolean') {
+      value = Boolean(rawVal);
+    } else if (type === 'json') {
+      try { value = JSON.parse(rawVal); }
+      catch {
+        setRowState(key, 'err');
+        setStatus(key, 'JSON INVALIDO', 'err');
+        localErrors.push(key);
+        continue;
+      }
+    }
+    changes.push({ key, value });
+  }
+
+  if (changes.length === 0) return;
+
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+
+  try {
+    const result = await API.post('/api/admin/config', { changes });
+
+    const results = (result && Array.isArray(result.results)) ? result.results : null;
+
+    for (const ch of changes) {
+      const serverResult = results && results.find(r => r.key === ch.key);
+      const ok = serverResult ? (serverResult.ok || serverResult.success) : true;
+      const errMsg = serverResult ? (serverResult.error || '') : '';
+
+      if (ok) {
+        pending.delete(ch.key);
+        const cfg = configs.find(c => c.key === ch.key);
+        if (cfg) cfg.value = ch.value;
+        setRowState(ch.key, 'ok');
+        setStatus(ch.key, 'SALVO', 'ok');
+        setTimeout(() => {
+          if (!pending.has(ch.key)) {
+            setRowState(ch.key, '');
+            setStatus(ch.key, '', '');
+          }
+        }, 3500);
+      } else {
+        setRowState(ch.key, 'err');
+        setStatus(ch.key, errMsg || 'ERRO', 'err');
+      }
+    }
+
+    const saved = changes.length - (results ? results.filter(r => !(r.ok || r.success)).length : 0);
+    if (saved > 0) {
+      showToast(`${saved} config${saved !== 1 ? 's' : ''} salva${saved !== 1 ? 's' : ''} com sucesso.`, true);
+      setTimeout(loadAudit, 600);
+    }
+
+    updateToolbar();
+    updateCatCounts();
+  } catch (err) {
+    showToast('Erro ao salvar: ' + err.message, false);
+    btn.disabled = false;
+    updateToolbar();
+  }
+}
+
+function renderAudit(entries) {
+  const list = document.getElementById('audit-list');
+  list.textContent = '';
+
+  if (!entries || entries.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'empty-note';
+    div.textContent = 'Nenhum registro de auditoria encontrado.';
+    list.appendChild(div);
+    return;
+  }
+
+  const table = document.createElement('table');
+  table.className = 'audit-table';
+
+  const thead = document.createElement('thead');
+  const hrow  = document.createElement('tr');
+  for (const h of ['QUANDO', 'GM', 'CHAVE', 'ANTES', 'DEPOIS']) {
+    const th = document.createElement('th');
+    th.textContent = h;
+    hrow.appendChild(th);
+  }
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  for (const e of entries) {
+    const ts       = e.ts || e.timestamp || e.created_at || e.createdAt || '';
+    const admin    = String(e.actorName || e.admin || e.username || e.adminUsername || e.gm || '-');
+    const key      = String(e.key || e.config_key || e.configKey || '-');
+    const oldVal   = e.old_value !== undefined ? e.old_value : (e.oldValue !== undefined ? e.oldValue : '-');
+    const newVal   = e.new_value !== undefined ? e.new_value : (e.newValue !== undefined ? e.newValue : '-');
+
+    let fmtTs = '-';
+    if (ts) {
+      try { fmtTs = new Date(ts).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); }
+      catch { fmtTs = String(ts); }
+    }
+
+    const tr = document.createElement('tr');
+    const cells = [
+      { text: fmtTs,         cls: 'audit-ts' },
+      { text: admin,         cls: 'audit-admin' },
+      { text: key,           cls: 'audit-key' },
+      { text: formatAuditValue(oldVal), cls: 'audit-val' },
+      { text: formatAuditValue(newVal), cls: 'audit-val' },
+    ];
+    for (const cell of cells) {
+      const td = document.createElement('td');
+      td.className = cell.cls;
+      td.textContent = cell.text;
+      td.title = cell.text;
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  list.appendChild(table);
+}
+
+function formatAuditValue(value) {
+  if (value === null || value === undefined) return '-';
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+let _toastTimer;
+function showToast(msg, ok) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast ' + (ok ? 'toast--ok' : 'toast--err');
+  el.style.display  = 'block';
+  el.style.opacity  = '1';
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => { el.style.display = 'none'; }, 320);
+  }, 3800);
+}
+
+function doLogout() {
+  localStorage.removeItem('aet_token');
+  localStorage.removeItem('aet_username');
+  localStorage.removeItem('aet_is_gm');
+  window.location.href = '/login.html';
+}
+
+init();
+</script>
+</body>
+</html>

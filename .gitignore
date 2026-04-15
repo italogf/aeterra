@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Environment & secrets — NEVER commit
+.env
+.env.local
+.env.*.local
+
+# Database files (runtime data, not source)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Internal AI tooling (agents, prompts, skills — not for public repo)
+.github/agents/
+.github/instructions/
+.github/prompts/
+.github/skills/
+.github/copilot-instructions.md
+
+# Session state
+.copilot/

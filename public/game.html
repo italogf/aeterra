@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aeterra: World Breaker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body   { background: #06050300; overflow: hidden; font-family: 'Cinzel', serif; }
+  canvas { display: block; position: fixed; inset: 0; }
+
+  /* ── HUD overlays ─────────────────────────────────────────────────── */
+  #hud-tl {
+    position: fixed; top: 12px; left: 12px;
+    background: #08070566; backdrop-filter: blur(4px);
+    border: 1px solid #3a2e1488; padding: 8px 12px;
+    min-width: 180px; pointer-events: none;
+  }
+  .hud-name { font-size: .75rem; letter-spacing: .12em; color: #c9a84c; margin-bottom: 6px; }
+  .hud-bar-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .hud-bar-label { font-size: .55rem; letter-spacing: .1em; color: #7a5e2a; width: 20px; }
+  .hud-bar-bg { flex: 1; height: 8px; background: #1a1408; border: 1px solid #2a2010; overflow: hidden; }
+  .hud-bar-fill { height: 100%; transition: width .3s; }
+  #hp-fill  { background: linear-gradient(to right, #8b2020, #cc3030); }
+  #mp-fill  { background: linear-gradient(to right, #1a3a7a, #2a6acc); }
+  #st-fill  { background: linear-gradient(to right, #6a4800, #c9a000); }
+  .hud-bar-val { font-size: .55rem; color: #5a4420; min-width: 55px; text-align: right; }
+  .hud-stats { font-size: .6rem; color: #5a4420; letter-spacing: .08em; margin-top: 5px; }
+  .hud-sub { font-size: .55rem; color: #8c7240; letter-spacing: .12em; margin-top: 4px; }
+  .hud-effects {
+    display: flex; flex-wrap: wrap; gap: 4px;
+    margin-top: 6px;
+  }
+  .hud-effect {
+    font-size: .5rem; letter-spacing: .08em;
+    border: 1px solid #2a2010; padding: 2px 5px;
+    background: #120f08cc;
+  }
+  .hud-effect.pos { color: #63c77b; border-color: #24442d; }
+  .hud-effect.neg { color: #d26c6c; border-color: #4a1c1c; }
+
+  #hud-tc {
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    background: #08070566; backdrop-filter: blur(4px);
+    border: 1px solid #3a2e1444;
+    padding: 4px 16px; pointer-events: none;
+    font-size: .6rem; letter-spacing: .2em; color: #7a5e2a; text-align: center;
+  }
+
+  #minimap {
+    position: fixed; top: 12px; right: 12px;
+    border: 1px solid #3a2e14; background: #06050366;
+    image-rendering: pixelated;
+  }
+
+  /* ── Chat ─────────────────────────────────────────────────────────── */
+  #chat-panel {
+    position: fixed; bottom: 12px; left: 12px;
+    width: 320px;
+    background: #08070588; backdrop-filter: blur(4px);
+    border: 1px solid #2a2010;
+    display: flex; flex-direction: column;
+  }
+  #chat-log {
+    height: 120px; overflow-y: auto; padding: 6px 8px;
+    font-size: .65rem; line-height: 1.6; color: #a88a4c;
+    scrollbar-width: thin; scrollbar-color: #3a2e14 transparent;
+  }
+  #chat-log .sys   { color: #7a5e2a; }
+  #chat-log .dmg   { color: #cc4444; }
+  #chat-log .loot  { color: #4acc44; }
+  #chat-log .npc   { color: #7fb7a3; }
+  #npc-focus {
+    padding: 6px 8px; border-bottom: 1px solid #1a1408;
+    font-size: .58rem; line-height: 1.6; color: #5a4420;
+    display: none;
+  }
+  #npc-focus strong { color: #c9a84c; font-weight: 600; }
+  .npc-section-title { margin-top: 7px; font-size: .5rem; letter-spacing: .16em; color: #7a5e2a; }
+  .npc-chip-row { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+  .npc-chip {
+    border: 1px solid #2a2010; background:#120f08cc; color:#c9a84c;
+    padding: 2px 5px; font-size:.48rem; letter-spacing:.08em;
+  }
+  .npc-service-list { display:flex; flex-direction:column; gap:5px; margin-top:6px; }
+  .npc-service-btn {
+    width:100%; background:#0c0a0555; border:1px solid #1a1408; color:#c9a84c;
+    font-family:'Cinzel', serif; font-size:.56rem; text-align:left; padding:5px 6px; cursor:pointer;
+  }
+  .npc-service-btn:hover { border-color:#3a2e14; color:#f0d080; }
+  .npc-service-btn:disabled { cursor:default; color:#5a4420; border-color:#16110a; }
+  .npc-service-note { display:block; color:#5a4420; font-size:.48rem; margin-top:2px; }
+  #chat-input-row  { display: flex; border-top: 1px solid #2a2010; }
+  #chat-input {
+    flex: 1; background: transparent; border: none; outline: none;
+    padding: 5px 8px; font-family: 'Cinzel', serif;
+    font-size: .65rem; color: #c9a84c;
+  }
+  #chat-send {
+    background: transparent; border: none;
+    border-left: 1px solid #2a2010; color: #5a4420;
+    padding: 0 8px; cursor: pointer; font-size: .7rem;
+  }
+  #chat-send:hover { color: #c9a84c; }
+
+  #action-panel {
+    position: fixed; bottom: 154px; left: 12px;
+    width: min(340px, calc(100vw - 24px));
+    background: #080705cc; backdrop-filter: blur(6px);
+    border: 1px solid #2a2010; padding: 8px;
+  }
+  #action-terrain {
+    font-size: .55rem; letter-spacing: .14em; color: #7a5e2a;
+    margin-bottom: 6px; line-height: 1.6;
+  }
+  #action-list {
+    display: flex; flex-direction: column; gap: 5px;
+  }
+  .action-btn {
+    width: 100%; background: #0c0a0555; border: 1px solid #1a1408;
+    color: #c9a84c; font-family: 'Cinzel', serif; font-size: .58rem;
+    text-align: left; padding: 5px 7px; cursor: pointer;
+  }
+  .action-btn:hover { border-color: #3a2e14; color: #f0d080; }
+  .action-btn:disabled {
+    cursor: default; color: #5a4420; border-color: #16110a;
+  }
+  .action-meta {
+    display: block; color: #5a4420; font-size: .5rem; margin-top: 2px;
+  }
+
+  /* ── Inventory / stats panel ──────────────────────────────────────── */
+  #inv-panel {
+    position: fixed; bottom: 12px; right: 12px;
+    width: 200px; max-height: 260px; overflow-y: auto;
+    background: #08070588; backdrop-filter: blur(4px);
+    border: 1px solid #2a2010; padding: 8px;
+    font-size: .62rem; color: #7a5e2a; display: none;
+  }
+  .inv-item-btn, .equip-item-btn {
+    width: 100%;
+    background: #0c0a0555;
+    border: 1px solid #1a1408;
+    color: #c9a84c;
+    font-family: 'Cinzel', serif;
+    font-size: .58rem;
+    text-align: left;
+    padding: 5px 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+  }
+  .inv-item-btn:hover, .equip-item-btn:hover { border-color: #3a2e14; color: #f0d080; }
+  .inv-item-meta { display:block; color:#5a4420; font-size:.5rem; margin-top:2px; }
+  .panel-note { color:#3a2e14; font-size:.52rem; letter-spacing:.06em; margin-top:.45rem; line-height:1.5; }
+  #inv-toggle {
+    position: fixed; bottom: 12px; right: 12px;
+    background: #12100a88; border: 1px solid #3a2e14;
+    color: #7a5e2a; font-family: 'Cinzel', serif;
+    font-size: .6rem; letter-spacing: .1em; padding: 5px 10px;
+    cursor: pointer; display: block;
+  }
+  #inv-toggle:hover { color: #c9a84c; }
+
+  /* ── Overlays ─────────────────────────────────────────────────────── */
+  .overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: #060503ee;
+  }
+  .overlay-card {
+    background: linear-gradient(160deg, #12100a, #0e0c07);
+    border: 1px solid #3a2e14; border-top-color: #c9a84c55;
+    padding: 2rem 2.5rem; width: 420px; text-align: center;
+  }
+  .overlay-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.4rem; color: #c9a84c;
+    text-shadow: 0 0 20px #c9a84c44; margin-bottom: 1.2rem;
+  }
+  .overlay label { display: block; font-size: .62rem; letter-spacing: .15em; color: #7a5e2a; margin: .8rem 0 .3rem; text-align: left; }
+  .overlay input[type=text] {
+    width: 100%; padding: .55rem .7rem;
+    background: #0a0800; border: 1px solid #2a2010;
+    color: #c9a84c; font-family: 'Cinzel', serif; font-size: .82rem; outline: none;
+  }
+  .gender-row { display: flex; gap: .5rem; margin-top: .3rem; }
+  .gender-btn {
+    flex: 1; padding: .55rem; font-family: 'Cinzel', serif;
+    font-size: .65rem; letter-spacing: .1em;
+    background: #0a0800; border: 1px solid #2a2010;
+    color: #5a4420; cursor: pointer; transition: all .2s;
+  }
+  .gender-btn.sel { background: #1a1408; border-color: #c9a84c88; color: #c9a84c; }
+  .ov-btn {
+    margin-top: 1.2rem; width: 100%; padding: .75rem;
+    background: linear-gradient(135deg, #1a1408, #2a2010);
+    border: 1px solid #3a2e14; color: #c9a84c;
+    font-family: 'Cinzel', serif; font-size: .78rem;
+    letter-spacing: .18em; cursor: pointer; transition: all .2s;
+  }
+  .ov-btn:hover { border-color: #c9a84c66; }
+  .ov-err { color: #cc4444; font-size: .65rem; margin-top: .6rem; min-height: 1rem; }
+  .reveal-box { background: #0a0800; border: 1px solid #3a2e14; padding: 1rem; margin-top: 1rem; text-align: left; font-size: .7rem; }
+  .reveal-box .rline { display: flex; justify-content: space-between; padding: .2rem 0; border-bottom: 1px solid #1a1408; }
+  .reveal-box .rlabel { color: #5a4420; letter-spacing: .1em; }
+  .reveal-box .rval   { color: #c9a84c; }
+
+  .death-overlay { position: fixed; inset: 0; background: #06000088; display: flex; align-items: center; justify-content: center; }
+  .death-card { background: #0e0606; border: 1px solid #4a1010; border-top-color: #cc4444; padding: 2rem 2.5rem; width: 360px; text-align: center; }
+  .death-title { font-family: 'Cinzel Decorative', serif; font-size: 1.5rem; color: #cc4444; margin-bottom: 1rem; }
+  .death-msg { font-size: .7rem; color: #8a4444; letter-spacing: .08em; line-height: 1.8; }
+
+  /* ── Controls panel ──────────────────────────────────────────────────── */
+  #help-btn {
+    position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%);
+    background: #12100a88; border: 1px solid #2a2010;
+    color: #5a4420; font-family: 'Cinzel', serif;
+    font-size: .55rem; letter-spacing: .15em; padding: 4px 16px;
+    cursor: pointer; z-index: 10; transition: all .2s;
+  }
+  #help-btn:hover { color: #c9a84c; border-color: #3a2e14; }
+
+  #controls-panel {
+    position: fixed; bottom: 46px; left: 50%; transform: translateX(-50%);
+    background: #0e0c07ee; backdrop-filter: blur(6px);
+    border: 1px solid #3a2e14; border-top-color: #c9a84c44;
+    padding: .9rem 1.4rem; width: 400px; display: none; z-index: 20;
+  }
+  .ctrl-title { font-size: .62rem; letter-spacing: .22em; color: #c9a84c; margin-bottom: .7rem; text-align: center; }
+  .ctrl-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: .15rem .8rem; }
+  .ctrl-row   { display: flex; justify-content: space-between; align-items: center;
+                font-size: .6rem; padding: .25rem 0; border-bottom: 1px solid #1a1408; }
+  .ctrl-key  { color: #c9a84c; letter-spacing: .04em; }
+  .ctrl-desc { color: #7a5e2a; }
+  .ctrl-note { grid-column: 1/-1; font-size: .55rem; color: #3a2e14; letter-spacing: .08em;
+               margin-top: .4rem; text-align: center; }
+
+  /* ── World map modal ────────────────────────────────────────────────────── */
+  #wmap-modal {
+    position: fixed; inset: 0; background: #060503ee;
+    display: none; align-items: center; justify-content: center; z-index: 100;
+  }
+  #wmap-card {
+    background: linear-gradient(160deg, #12100a, #0e0c07);
+    border: 1px solid #3a2e14; border-top-color: #c9a84c55;
+    padding: 1.2rem 1.5rem; max-width: 640px; width: 90vw;
+  }
+  .wmap-title {
+    font-size: .65rem; letter-spacing: .25em; color: #c9a84c;
+    margin-bottom: .8rem; display: flex; justify-content: space-between; align-items: center;
+  }
+  .wmap-close {
+    background: none; border: 1px solid #3a2e14; color: #7a5e2a;
+    font-family: 'Cinzel', serif; font-size: .6rem; padding: 2px 10px; cursor: pointer;
+  }
+  .wmap-close:hover { color: #c9a84c; border-color: #c9a84c44; }
+  #wmap-canvas  { image-rendering: pixelated; border: 1px solid #2a2010; display: block; max-width: 100%; }
+  .wmap-legend  { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .6rem; }
+  .wmap-litem   { display: flex; align-items: center; gap: .3rem;
+                  font-size: .55rem; letter-spacing: .08em; color: #7a5e2a; }
+  .wmap-lcolor  { width: 10px; height: 10px; flex-shrink: 0; border: 1px solid #2a2010; }
+  .wmap-stats   { font-size: .55rem; color: #5a4420; letter-spacing: .1em; margin-top: .4rem; }
+
+  /* wmap button sits below minimap */
+  #wmap-btn {
+    position: fixed; right: 12px;
+    background: #12100a88; border: 1px solid #2a2010;
+    color: #5a4420; font-family: 'Cinzel', serif;
+    font-size: .52rem; letter-spacing: .1em; padding: 3px 8px;
+    cursor: pointer; transition: all .2s;
+  }
+  #wmap-btn:hover { color: #c9a84c; border-color: #3a2e14; }
+
+  /* time area in hud-tc */
+  #hud-tc { line-height: 1.7; }
+
+  /* HP regen pulse */
+  @keyframes regenPulse { 0%,100% { box-shadow: none } 50% { box-shadow: 0 0 8px #3ab83a99 } }
+  #hp-fill.regen { animation: regenPulse 1.2s ease-in-out infinite; }
+
+  /* ── Stamina low flash ──────────────────────────────────────────── */
+  @keyframes stamLow { 0%,100% { opacity:1 } 50% { opacity:.25 } }
+  #st-fill.low { animation: stamLow .35s ease-in-out 4; }
+
+  /* ── Character button ──────────────────────────────────────────── */
+  #char-btn {
+    position: fixed; bottom: 42px; right: 12px;
+    background: #12100a88; border: 1px solid #3a2e14;
+    color: #7a5e2a; font-family: 'Cinzel', serif;
+    font-size: .6rem; letter-spacing: .1em; padding: 5px 10px;
+    cursor: pointer; z-index: 10;
+  }
+  #char-btn:hover { color: #c9a84c; }
+
+  #gm-admin-btn {
+    position: fixed; bottom: 72px; right: 12px;
+    background: #12100a88; border: 1px solid #4f3b14;
+    color: #8a6d22; font-family: 'Cinzel', serif;
+    font-size: .58rem; letter-spacing: .14em; padding: 5px 10px;
+    cursor: pointer; z-index: 10; display: none;
+  }
+  #gm-admin-btn:hover { color: #d6b75a; border-color: #c9a84c88; }
+
+  #gm-admin-modal {
+    position: fixed; inset: 0; background: #060503ee;
+    display: none; align-items: center; justify-content: center; z-index: 130;
+  }
+  #gm-admin-card {
+    background: linear-gradient(160deg, #12100a, #0e0c07);
+    border: 1px solid #3a2e14; border-top-color: #c9a84c88;
+    width: min(760px, 95vw); max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .gm-admin-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .8rem 1rem; border-bottom: 1px solid #2a2010;
+  }
+  .gm-admin-title { font-size: .62rem; letter-spacing: .25em; color: #c9a84c; }
+  .gm-admin-close {
+    background: none; border: 1px solid #3a2e14; color: #7a5e2a;
+    font-family: 'Cinzel', serif; font-size: .6rem; padding: 2px 10px; cursor: pointer;
+  }
+  .gm-admin-close:hover { color: #c9a84c; border-color: #c9a84c44; }
+  .gm-admin-body { padding: 1rem; overflow-y: auto; }
+  .gm-admin-self {
+    font-size: .58rem; line-height: 1.7; color: #7a5e2a;
+    border: 1px solid #1a1408; background: #0a080055; padding: .7rem .8rem; margin-bottom: .9rem;
+  }
+  .gm-admin-label { display: block; font-size: .54rem; letter-spacing: .18em; color: #8a6d22; margin-bottom: .35rem; }
+  .gm-admin-input {
+    width: 100%; padding: .62rem .75rem; background: #0a0800;
+    border: 1px solid #2a2010; color: #c9a84c; font-family: 'Cinzel', serif; font-size: .8rem; outline: none;
+    margin-bottom: .9rem;
+  }
+  .gm-admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .9rem; }
+  .gm-admin-section {
+    border: 1px solid #1a1408; background: #0a080055; padding: .85rem;
+  }
+  .gm-admin-section-title { font-size: .55rem; letter-spacing: .18em; color: #c9a84c; margin-bottom: .45rem; }
+  .gm-admin-copy { font-size: .56rem; line-height: 1.7; color: #6f5730; min-height: 3.3rem; margin-bottom: .7rem; }
+  .gm-admin-actions { display: flex; gap: .55rem; flex-wrap: wrap; }
+  .gm-admin-action {
+    flex: 1; min-width: 145px; padding: .6rem .7rem;
+    background: #151108; border: 1px solid #3a2e14; color: #c9a84c;
+    font-family: 'Cinzel', serif; font-size: .56rem; letter-spacing: .12em; cursor: pointer;
+  }
+  .gm-admin-action:hover { border-color: #c9a84c66; }
+  .gm-admin-action.danger { color: #c86a6a; border-color: #4a1c1c; }
+  .gm-admin-feedback {
+    margin-top: .9rem; padding: .75rem .8rem; min-height: 2.6rem;
+    border: 1px solid #1a1408; background: #0a080055;
+    font-size: .58rem; line-height: 1.7; color: #7a5e2a;
+  }
+  .gm-admin-feedback.ok { color: #7ac48a; border-color: #24442d; }
+  .gm-admin-feedback.err { color: #d26c6c; border-color: #4a1c1c; }
+
+  /* ── Character sheet modal ─────────────────────────────────────── */
+  #charsheet-modal {
+    position: fixed; inset: 0; background: #060503ee;
+    display: none; align-items: center; justify-content: center; z-index: 110;
+  }
+  #charsheet-card {
+    background: linear-gradient(160deg, #12100a, #0e0c07);
+    border: 1px solid #3a2e14; border-top-color: #c9a84c88;
+    width: min(840px, 96vw); max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .csh-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: .7rem 1.2rem; border-bottom: 1px solid #2a2010; flex-shrink: 0;
+  }
+  .csh-title { font-size: .62rem; letter-spacing: .25em; color: #c9a84c; }
+  .csh-close {
+    background: none; border: 1px solid #3a2e14; color: #7a5e2a;
+    font-family: 'Cinzel', serif; font-size: .6rem; padding: 2px 10px; cursor: pointer;
+  }
+  .csh-close:hover { color: #c9a84c; border-color: #c9a84c44; }
+  .csh-body {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    flex: 1; overflow: auto; min-height: 0;
+  }
+  .csh-panel { padding: .9rem 1rem; border-right: 1px solid #1a1408; overflow-y: auto; }
+  .csh-panel-title {
+    font-size: .52rem; letter-spacing: .22em; color: #7a5e2a;
+    margin-bottom: .6rem; padding-bottom: .3rem; border-bottom: 1px solid #1a1408;
+  }
+  .csh-portrait {
+    width: 72px; height: 72px; margin: 0 auto .5rem;
+    background: #0a0800; border: 1px solid #3a2e14;
+    display: flex; align-items: center; justify-content: center; font-size: 2.2rem;
+  }
+  .csh-charname { text-align:center; font-size:.7rem; color:#c9a84c; letter-spacing:.1em; margin-bottom:.2rem; }
+  .csh-charinfo { text-align:center; font-size:.57rem; color:#7a5e2a; letter-spacing:.06em; line-height:1.8; }
+  .csh-equip-slot {
+    display: flex; align-items: center; gap: .5rem;
+    padding: .3rem .4rem; border: 1px solid #1a1408; margin-bottom: .25rem; background: #0a080055;
+  }
+  .csh-slot-icon  { font-size:.85rem; width:20px; text-align:center; flex-shrink:0; }
+  .csh-slot-label { font-size:.53rem; color:#5a4420; letter-spacing:.08em; min-width:52px; }
+  .csh-slot-item  { font-size:.58rem; color:#c9a84c; }
+  .csh-slot-empty { font-size:.55rem; color:#2a2010; font-style:italic; }
+  .csh-bar-row    { margin-bottom: .5rem; }
+  .csh-bar-lbl {
+    display:flex; justify-content:space-between;
+    font-size:.5rem; letter-spacing:.1em; color:#5a4420; margin-bottom:2px;
+  }
+  .csh-bar-bg   { height:6px; background:#1a1408; border:1px solid #2a2010; overflow:hidden; }
+  .csh-stat-row {
+    display:flex; justify-content:space-between; padding:.22rem 0;
+    border-bottom:1px solid #1a1408; font-size:.6rem;
+  }
+  .csh-stat-label { color:#5a4420; letter-spacing:.1em; }
+  .csh-stat-val   { color:#c9a84c; }
+  .csh-footer {
+    border-top: 1px solid #2a2010; padding: .6rem 1.2rem;
+    max-height: 150px; overflow-y: auto; flex-shrink: 0;
+  }
+  .csh-footer-title { font-size:.52rem; letter-spacing:.2em; color:#7a5e2a; margin-bottom:.4rem; }
+  .csh-chronicle {
+    font-size:.58rem; color:#5a4420; letter-spacing:.05em; line-height:1.7;
+    padding:.1rem 0; border-bottom:1px solid #0f0d08;
+  }
+  .csh-chr-date { color:#3a2e14; font-size:.5rem; margin-right:.3rem; }
+  .csh-ach-list { display:flex; flex-direction:column; gap:.3rem; }
+  .csh-chip-list { display:flex; flex-wrap:wrap; gap:.35rem; }
+  .csh-chip {
+    font-size:.5rem; letter-spacing:.08em; padding:.22rem .4rem;
+    border:1px solid #2a2010; background:#0a080055; color:#c9a84c;
+  }
+  .csh-chip.neg { color:#d26c6c; border-color:#4a1c1c; }
+  .csh-chip.pos { color:#63c77b; border-color:#24442d; }
+  .csh-ach {
+    display:flex; align-items:flex-start; gap:.5rem;
+    padding:.3rem .45rem; border:1px solid #1a1408; background:#0a080055;
+  }
+  .csh-ach.unlocked { border-color:#c9a84c44; background:#1a140866; }
+  .csh-ach-icon { font-size:.85rem; flex-shrink:0; margin-top:1px; }
+  .csh-ach-name { font-size:.57rem; letter-spacing:.06em; color:#3a2e14; }
+  .csh-ach.unlocked .csh-ach-name { color:#c9a84c; }
+  .csh-ach-desc { font-size:.5rem; color:#2a2010; }
+  .csh-ach.unlocked .csh-ach-desc { color:#5a4420; }
+  .csh-quest-list { display:flex; flex-direction:column; gap:.4rem; }
+  .csh-quest {
+    border:1px solid #1a1408; background:#0c0a0555; padding:.45rem .55rem;
+    font-size:.55rem; line-height:1.55; color:#5a4420;
+  }
+  .csh-quest.ready { border-color:#3e5a24; background:#0d120855; }
+  .csh-quest.completed { border-color:#24442d; background:#0a120d55; }
+  .csh-quest-title { color:#c9a84c; letter-spacing:.08em; margin-bottom:.15rem; }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+<canvas id="minimap" width="100" height="70"></canvas>
+<button id="wmap-btn" onclick="openWorldMap()">&#x2726; MAPA MUNDIAL</button>
+
+<!-- HUD top-left -->
+<div id="hud-tl">
+  <div class="hud-name" id="hud-name">—</div>
+  <div class="hud-bar-row">
+    <div class="hud-bar-label">HP</div>
+    <div class="hud-bar-bg"><div class="hud-bar-fill" id="hp-fill" style="width:100%"></div></div>
+    <div class="hud-bar-val" id="hp-val">—</div>
+  </div>
+  <div class="hud-bar-row">
+    <div class="hud-bar-label">MP</div>
+    <div class="hud-bar-bg"><div class="hud-bar-fill" id="mp-fill" style="width:100%"></div></div>
+    <div class="hud-bar-val" id="mp-val">—</div>
+  </div>
+  <div class="hud-bar-row">
+    <div class="hud-bar-label">ST</div>
+    <div class="hud-bar-bg"><div class="hud-bar-fill" id="st-fill" style="width:100%"></div></div>
+    <div class="hud-bar-val" id="st-val">—</div>
+  </div>
+  <div class="hud-stats" id="hud-stats">—</div>
+  <div class="hud-sub" id="hud-sub">—</div>
+  <div class="hud-effects" id="hud-effects"></div>
+</div>
+
+<!-- location bar top-center -->
+<div id="hud-tc" id="hud-loc">—</div>
+
+<!-- Chat -->
+<div id="chat-panel">
+  <div id="npc-focus"></div>
+  <div id="chat-log"></div>
+  <div id="chat-input-row">
+    <input type="text" id="chat-input" placeholder="T para focar chat…" maxlength="140">
+    <button id="chat-send">▶</button>
+  </div>
+</div>
+
+<div id="action-panel">
+  <div id="action-terrain">Exploração ativa. Nenhuma ação contextual disponível.</div>
+  <div id="action-list"></div>
+</div>
+
+<!-- Inventory -->
+<button id="char-btn" onclick="openCharSheet()">&#x25C9; PERSONAGEM</button>
+<button id="gm-admin-btn" onclick="openAdminPanel()">☬ ADMIN</button>
+<button id="inv-toggle" onclick="toggleInv()">⚔ INVENTÁRIO</button>
+<div id="inv-panel">
+  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin-bottom:.5rem">INVENTÁRIO</div>
+  <div id="inv-list" style="color:#7a5e2a;font-size:.62rem;line-height:1.7"></div>
+  <div style="font-size:.62rem;letter-spacing:.15em;color:#c9a84c;margin:.7rem 0 .5rem">EQUIPADO</div>
+  <div id="equip-list"></div>
+  <div style="margin-top:.5rem;font-size:.6rem;color:#3a2e14" id="gold-display">Ouro: 0</div>
+  <div class="panel-note">Clique em um item do inventário para equipar. Clique em um item equipado para remover.</div>
+</div>
+
+<!-- Controls -->\n<button id="help-btn" onclick="toggleHelp()">? CONTROLES</button>
+<div id="controls-panel">
+  <div class="ctrl-title">CONTROLES DE JOGO</div>
+  <div class="ctrl-grid">
+    <div class="ctrl-row"><span class="ctrl-key">WASD / ↑←↓→</span><span class="ctrl-desc">Mover personagem</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">ESPAÇO / F</span><span class="ctrl-desc">Atacar inimigo próximo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Clique no alvo</span><span class="ctrl-desc">Atacar alvo específico</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">E</span><span class="ctrl-desc">Usar ação contextual principal</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">1 / 2 / 3</span><span class="ctrl-desc">Escolher mineração, pesca ou cultivo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">T</span><span class="ctrl-desc">Focar chat</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">I</span><span class="ctrl-desc">Inventário</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Clique item</span><span class="ctrl-desc">Equipar / remover equipamento</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">M</span><span class="ctrl-desc">Mapa do mundo</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">C</span><span class="ctrl-desc">Ficha do personagem</span></div>
+    <div class="ctrl-row"><span class="ctrl-key">Parado 5s+</span><span class="ctrl-desc">Regenerar HP (3%/s)</span></div>
+    <div class="ctrl-note">Bordas de mapa → muda zona automaticamente &nbsp;|&nbsp; ESC fecha painéis</div>
+  </div>
+</div>
+
+<!-- GM admin modal -->
+<div id="gm-admin-modal" onclick="if(event.target===this)closeAdminPanel()">
+  <div id="gm-admin-card">
+    <div class="gm-admin-header">
+      <span class="gm-admin-title">☬ CONTROLE ADMINISTRATIVO</span>
+      <button class="gm-admin-close" onclick="closeAdminPanel()">&#x2715; FECHAR</button>
+    </div>
+    <div class="gm-admin-body">
+      <div class="gm-admin-self" id="gm-admin-self">Conta: —</div>
+      <label class="gm-admin-label" for="gm-admin-target">USERNAME ALVO</label>
+      <input class="gm-admin-input" id="gm-admin-target" type="text" maxlength="20" placeholder="Nome exato da conta para administrar">
+
+      <div class="gm-admin-grid">
+        <div class="gm-admin-section">
+          <div class="gm-admin-section-title">ISENÇÃO DE COOLDOWN</div>
+          <div class="gm-admin-copy">Ativa ou remove a exceção que permite criar novo personagem sem aguardar 24h após a morte.</div>
+          <div class="gm-admin-actions">
+            <button class="gm-admin-action" onclick="submitCooldownExemption(true)">LIBERAR 24H</button>
+            <button class="gm-admin-action danger" onclick="submitCooldownExemption(false)">RESTAURAR 24H</button>
+          </div>
+        </div>
+
+        <div class="gm-admin-section">
+          <div class="gm-admin-section-title">CARGO GM</div>
+          <div class="gm-admin-copy">Promove a conta alvo para GM ou remove esse cargo sem editar o banco manualmente.</div>
+          <div class="gm-admin-actions">
+            <button class="gm-admin-action" onclick="submitGmRole(true)">PROMOVER A GM</button>
+            <button class="gm-admin-action danger" onclick="submitGmRole(false)">REMOVER GM</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="gm-admin-feedback" id="gm-admin-feedback">Aguardando comando administrativo.</div>
+    </div>
+  </div>
+</div>
+
+<!-- World map modal -->
+<div id="wmap-modal" onclick="if(event.target===this)closeWorldMap()">
+  <div id="wmap-card">
+    <div class="wmap-title">
+      &#x2726; MAPA DO MUNDO DESCOBERTO
+      <button class="wmap-close" onclick="closeWorldMap()">&#x2715; FECHAR</button>
+    </div>
+    <canvas id="wmap-canvas"></canvas>
+    <div class="wmap-stats" id="wmap-stats"></div>
+    <div class="wmap-legend" id="wmap-legend"></div>
+  </div>
+</div>
+
+<!-- Character sheet modal -->
+<div id="charsheet-modal" onclick="if(event.target===this)closeCharSheet()">
+  <div id="charsheet-card">
+    <div class="csh-header">
+      <span class="csh-title">&#x2726; FICHA DO PERSONAGEM</span>
+      <button class="csh-close" onclick="closeCharSheet()">&#x2715; FECHAR</button>
+    </div>
+    <div class="csh-body">
+      <!-- Left: identity + equipment -->
+      <div class="csh-panel">
+        <div class="csh-panel-title">IDENTIDADE</div>
+        <div class="csh-portrait" id="csh-portrait">&#x25C9;</div>
+        <div class="csh-charname" id="csh-charname">—</div>
+        <div class="csh-charinfo" id="csh-charinfo">—</div>
+        <div class="csh-panel-title" style="margin-top:.9rem">EQUIPAMENTOS</div>
+        <div id="csh-equips"></div>
+      </div>
+      <!-- Center: status bars + attributes -->
+      <div class="csh-panel">
+        <div class="csh-panel-title">STATUS</div>
+        <div id="csh-status"></div>
+        <div class="csh-panel-title" style="margin-top:.9rem">ATRIBUTOS</div>
+        <div id="csh-attrs"></div>
+      </div>
+      <!-- Right: achievements -->
+      <div class="csh-panel" style="border-right:none">
+        <div class="csh-panel-title">CLASSE E SKILLS</div>
+        <div id="csh-skills"></div>
+        <div class="csh-panel-title" style="margin-top:.9rem">EFEITOS ATIVOS</div>
+        <div id="csh-effects"></div>
+        <div class="csh-panel-title">CONQUISTAS</div>
+        <div id="csh-achs"></div>
+      </div>
+    </div>
+    <div class="csh-footer">
+      <div class="csh-footer-title">&#x2726; CRÔNICAS DO DESTINO</div>
+      <div id="csh-chronicles"></div>
+      <div class="csh-footer-title" style="margin-top:.75rem">&#x2726; CONTRATOS LOCAIS</div>
+      <div id="csh-quests"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Character creation overlay -->
+<div class="overlay" id="ov-create">
+  <div class="overlay-card">
+    <div class="overlay-title">INVOCAR DESTINO</div>
+    <p style="font-size:.62rem;color:#7a5e2a;letter-spacing:.08em;line-height:1.8">
+      Um novo portador surge no mundo eterno.<br>Declare seu nome — o destino fará o resto.
+    </p>
+    <label>NOME</label>
+    <input type="text" id="cc-name" placeholder="Seu nome" maxlength="24">
+    <label>GÊNERO</label>
+    <div class="gender-row">
+      <button class="gender-btn" onclick="selGender('M')">MASCULINO</button>
+      <button class="gender-btn" onclick="selGender('F')">FEMININO</button>
+      <button class="gender-btn" onclick="selGender('N')">NEUTRO</button>
+    </div>
+    <div class="ov-err" id="cc-err"></div>
+    <button class="ov-btn" id="cc-btn" onclick="createChar()">✦  LANÇAR NO MUNDO</button>
+
+    <!-- Reveal: shown after creation -->
+    <div id="cc-reveal" style="display:none">
+      <div class="reveal-box" id="cc-details"></div>
+      <button class="ov-btn" onclick="acceptDest()">ACEITAR DESTINO  ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- Death overlay -->
+<div class="overlay" id="ov-dead" style="display:none">
+  <div class="death-card">
+    <div class="death-title">VOCÊ MORREU</div>
+    <div class="death-msg" id="dead-msg">O destino recusa os fracos.</div>
+    <button class="ov-btn" style="margin-top:1.5rem;border-color:#4a1010;color:#cc4444" onclick="goLogin()">
+      RETORNAR AO REINO
+    </button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ─── Config ──────────────────────────────────────────────────────────────
+const TS = 32; // tile size px
+
+const TILE_CLR = {
+  0:  '#2a3a1a',  // grass
+  1:  '#0a1808',  // tree
+  2:  '#0a1525',  // water
+  3:  '#2a2520',  // rock
+  4:  '#2a2510',  // path
+  5:  '#3a2e14',  // sand
+  6:  '#201812',  // wall
+  7:  '#181208',  // floor
+  8:  '#3a2808',  // door
+  9:  '#3a3010',  // chest
+  10: '#100808',  // dungeon
+  11: '#1e3010',  // tall grass
+};
+const TILE_ACCENT = { 9:'#c9a84c', 10:'#cc4444', 8:'#8b6020' };
+const BIOME_LABEL = { forest:'Floresta', desert:'Deserto', mountain:'Montanha', city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+
+// ─── State ───────────────────────────────────────────────────────────────
+let gameState  = 'loading';  // loading | charCreate | playing | dead
+let myPlayerId = null;
+let myPlayer   = null;
+let gameMap    = null;       // { x, y, biome, tiles, width, height }
+let entities   = new Map();  // id -> entity
+let floatTexts = [];
+let camera     = { x: 0, y: 0 };
+let ws         = null;
+let token      = localStorage.getItem('aet_token');
+let chatFocused = false;
+let selGenderVal = 'M';
+let invOpen    = false;
+let charData   = null;       // from auth_ok
+let gameTime   = null;       // { hour, minute, day, year, isNight }
+let isRegen      = false;
+let regenTimeout = null;
+let stamLowCooldown = 0;
+let activeNpc  = null;
+let interactionContext = null;
+const sessionState = {
+  username: localStorage.getItem('aet_username') || '',
+  isGm: localStorage.getItem('aet_is_gm') === '1',
+  bypassDeathCooldown: localStorage.getItem('aet_bypass_death_cooldown') === '1',
+  hasCharacter: false,
+};
+
+const keys = {};
+let lastMoveAt = 0;
+const MOVE_MS  = 160;
+const BIOME_COLORS = { forest:'#2a3a1a', desert:'#3a2e14', mountain:'#2a2520', city:'#181208', water:'#0a1525', plains:'#2a3015', anomaly:'#100810' };
+
+// ─── Canvas ──────────────────────────────────────────────────────────────
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const mm     = document.getElementById('minimap');
+const mmCtx  = mm.getContext('2d');
+
+function resize() {
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+function persistSessionState(session) {
+  if (!session) return;
+  sessionState.username = session.username ?? sessionState.username;
+  sessionState.isGm = typeof session.isGm === 'boolean' ? session.isGm : sessionState.isGm;
+  sessionState.bypassDeathCooldown = typeof session.bypassDeathCooldown === 'boolean' ? session.bypassDeathCooldown : sessionState.bypassDeathCooldown;
+  sessionState.hasCharacter = typeof session.hasCharacter === 'boolean' ? session.hasCharacter : sessionState.hasCharacter;
+
+  localStorage.setItem('aet_username', sessionState.username || '');
+  localStorage.setItem('aet_is_gm', sessionState.isGm ? '1' : '0');
+  localStorage.setItem('aet_bypass_death_cooldown', sessionState.bypassDeathCooldown ? '1' : '0');
+
+  document.getElementById('gm-admin-btn').style.display = sessionState.isGm ? 'block' : 'none';
+  document.getElementById('gm-admin-self').textContent =
+    `Conta: ${sessionState.username || '—'} · ${sessionState.isGm ? 'GM ativo' : 'Sem cargo GM'}${sessionState.bypassDeathCooldown ? ' · Isento do cooldown de morte' : ''}`;
+
+  if (!sessionState.isGm) closeAdminPanel();
+}
+
+function clearSessionState() {
+  token = null;
+  sessionState.username = '';
+  sessionState.isGm = false;
+  sessionState.bypassDeathCooldown = false;
+  sessionState.hasCharacter = false;
+  localStorage.removeItem('aet_token');
+  localStorage.removeItem('aet_username');
+  localStorage.removeItem('aet_is_gm');
+  localStorage.removeItem('aet_bypass_death_cooldown');
+}
+
+async function loadSessionState() {
+  const r = await fetch('/api/account/session', { headers: { Authorization: 'Bearer ' + token } });
+  if (r.status === 401) {
+    clearSessionState();
+    window.location.href = '/';
+    return false;
+  }
+  if (!r.ok) return null;
+  const session = await r.json();
+  persistSessionState(session);
+  return session;
+}
+
+// ─── WebSocket ────────────────────────────────────────────────────────────
+function connect() {
+  if (!token) { window.location.href = '/'; return; }
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${proto}//${location.host}`);
+
+  ws.addEventListener('open',    ()     => ws.send(JSON.stringify({ type:'auth', token })));
+  ws.addEventListener('message', e      => handleMsg(JSON.parse(e.data)));
+  ws.addEventListener('close',   ()     => setTimeout(connect, 3000));
+  ws.addEventListener('error',   ()     => {});
+}
+
+function sendWS(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+
+function sendNpcService(action, payload = {}) {
+  if (!activeNpc) return;
+  sendWS({ type: 'npc_service', npcId: activeNpc.id, action, ...payload });
+}
+
+// ─── Message handlers ─────────────────────────────────────────────────────
+function handleMsg(msg) {
+  switch (msg.type) {
+    case 'auth_ok':    onAuthOk(msg);      break;
+    case 'init':       onInit(msg);        break;
+    case 'map_change': onMapChange(msg);   break;
+    case 'entity_move':   onEntityMove(msg);   break;
+    case 'entity_spawn':  onEntitySpawn(msg);  break;
+    case 'entity_death':  onEntityDeath(msg);  break;
+    case 'player_join':   onEntitySpawn(msg);  break;
+    case 'player_leave':  entities.delete(msg.entityId); break;
+    case 'combat':        onCombat(msg);        break;
+    case 'chat':          onChat(msg);           break;
+    case 'level_up':      onLevelUp(msg);        break;
+    case 'loot':          onLoot(msg);           break;
+    case 'you_died':      onDied(msg);           break;
+    case 'tile_change':   if (gameMap) gameMap.tiles[msg.idx] = msg.tile; break;
+    case 'site_update':   onSiteUpdate(msg);      break;
+    case 'time':           onTime(msg);          break;
+    case 'hp_regen':       onHpRegen(msg);        break;
+    case 'stamina_update': onStaminaUpdate(msg);  break;
+    case 'stamina_low':    onStaminaLow();         break;
+    case 'player_state':   onPlayerState(msg);     break;
+    case 'interaction_context': onInteractionContext(msg); break;
+    case 'npc_focus':      onNpcFocus(msg);        break;
+    case 'npc_dialogue':   onNpcDialogue(msg);     break;
+    case 'status_event':   onStatusEvent(msg);     break;
+    case 'skill_unlock':   onSkillUnlock(msg);     break;
+    case 'error':         chatLine(`⚠ ${msg.msg}`, '#cc4444', 'err'); break;
+  }
+}
+
+function onAuthOk(msg) {
+  charData = msg.character;
+  // Server will immediately send 'init' message next
+}
+
+function onInit(msg) {
+  gameMap    = msg.map;
+  myPlayerId = msg.playerId;
+  entities   = new Map();
+  msg.entities.forEach(e => entities.set(e.id, e));
+  myPlayer = entities.get(myPlayerId);
+  if (msg.time) { gameTime = msg.time; }
+  activeNpc = null;
+  interactionContext = null;
+
+  if (gameState === 'charCreate') {
+    document.getElementById('ov-create').style.display = 'none';
+  }
+  gameState = 'playing';
+  updateHUD();
+  updateTimeHUD();
+  updateMinimap();
+  positionWmapBtn();
+
+  document.getElementById('ov-create').style.display = 'none';
+  document.getElementById('ov-dead').style.display   = 'none';
+}
+
+function onMapChange(msg) {
+  gameMap = msg.map;
+  entities = new Map();
+  msg.entities.forEach(e => entities.set(e.id, e));
+  myPlayer = entities.get(msg.playerId);
+  if (msg.time) { gameTime = msg.time; }
+  activeNpc = null;
+  interactionContext = null;
+  updateMinimap();
+  updateTimeHUD();
+  positionWmapBtn();
+  updateNpcFocus();
+  updateActionPanel();
+}
+
+function onEntityMove(msg) {
+  const e = entities.get(msg.entityId);
+  if (e) { e.x = msg.x; e.y = msg.y; }
+  if (msg.entityId === myPlayerId && myPlayer) {
+    myPlayer.x = msg.x; myPlayer.y = msg.y;
+    updateCam();
+  }
+}
+
+function onEntitySpawn(msg) {
+  const e = msg.entity || msg;
+  if (e && e.id) entities.set(e.id, e);
+}
+
+function onPlayerState(msg) {
+  const state = msg.state || msg;
+  if (!state) return;
+  charData = { ...(charData || {}), ...state };
+  if (!myPlayer) myPlayer = { ...state };
+  else Object.assign(myPlayer, state);
+  if (myPlayerId) {
+    const current = entities.get(myPlayerId) || {};
+    entities.set(myPlayerId, { ...current, ...myPlayer });
+  }
+  updateHUD();
+}
+
+function onSiteUpdate(msg) {
+  if (!gameMap) return;
+  gameMap.sites = gameMap.sites || {};
+  if (msg.site) gameMap.sites[String(msg.idx)] = msg.site;
+  else delete gameMap.sites[String(msg.idx)];
+}
+
+function onInteractionContext(msg) {
+  interactionContext = msg.context || null;
+  updateActionPanel();
+}
+
+function onEntityDeath(msg) {
+  entities.delete(msg.entityId);
+  if (msg.drops && msg.killerId === myPlayerId) {
+    const items = msg.drops.map(d => `${d.qty}× ${d.item}`).join(', ');
+    chatLine(`✦ Loot: ${items}  (+${msg.expGain || 0} EXP, +${msg.goldGain || 0} ouro)`, '#4acc44', 'loot');
+  }
+  if (msg.isPlayer && msg.victimName) {
+    chatLine(`☠ ${msg.victimName} foi abatido.`, '#cc4444', 'dmg');
+  }
+}
+
+function onCombat(msg) {
+  const target = entities.get(msg.targetId);
+  if (target) { target.hp = msg.targetHp; target.maxHp = msg.targetMaxHp; }
+
+  if (msg.targetId === myPlayerId && myPlayer) {
+    myPlayer.hp = msg.targetHp;
+    updateHUD();
+  }
+  if (msg.killerId === myPlayerId && myPlayer) {
+    myPlayer = entities.get(myPlayerId) || myPlayer;
+    updateHUD();
+  }
+
+  // Floating damage number at target position
+  const t = target || {};
+  const tx = t.x ?? 0, ty = t.y ?? 0;
+  const color = msg.attackerId === myPlayerId ? '#ffcc44' : '#ff4444';
+  const txt   = msg.crit ? `!!${msg.damage}` : String(msg.damage);
+  floatTexts.push({ wx: tx * TS + TS/2, wy: ty * TS, text: txt, color, age: 0, maxAge: 55 });
+}
+
+function onChat(msg) {
+  const c = msg.system ? '#7a5e2a' : (msg.color || '#a88a4c');
+  chatLine(`[${msg.sender}] ${msg.text}`, c);
+}
+
+function onNpcFocus(msg) {
+  activeNpc = msg.npc || null;
+  updateNpcFocus();
+}
+
+function onNpcDialogue(msg) {
+  activeNpc = msg.npc || activeNpc;
+  updateNpcFocus();
+  if (msg.npc?.name) chatLine(`[${msg.npc.name}] ${msg.text}`, '#7fb7a3', 'npc');
+}
+
+function onStatusEvent(msg) {
+  if (!msg.effect) return;
+  const label = msg.effect.label || msg.effect.id;
+  if (msg.mode === 'applied') chatLine(`✦ ${label} aplicado.`, msg.effect.type === 'positive' ? '#63c77b' : '#d26c6c', 'sys');
+  if (msg.mode === 'expired') chatLine(`✦ ${label} terminou.`, '#7a5e2a', 'sys');
+  if (msg.mode === 'tick' && msg.damage) {
+    chatLine(`☠ ${label} causa ${msg.damage} de dano.`, '#cc6666', 'dmg');
+    if (myPlayer) {
+      floatTexts.push({ wx: myPlayer.x * TS + TS / 2, wy: myPlayer.y * TS - 6, text: `-${msg.damage}`, color: '#d26c6c', age: 0, maxAge: 50 });
+    }
+  }
+}
+
+function onSkillUnlock(msg) {
+  if (!msg.skill) return;
+  chatLine(`⬡ Skill aprendida: ${msg.skill.name}`, '#c9a84c', 'sys');
+}
+
+function onLevelUp(msg) {
+  chatLine(`⬆ Nível ${msg.level}! HP: ${msg.hp}/${msg.maxHp}`, '#c9a84c');
+  if (myPlayer) {
+    myPlayer.level = msg.level;
+    myPlayer.hp    = msg.hp;
+    myPlayer.maxHp = msg.maxHp;
+    if (msg.atk)        myPlayer.atk        = msg.atk;
+    if (msg.def)        myPlayer.def        = msg.def;
+    if (msg.maxStamina) { myPlayer.maxStamina = msg.maxStamina; myPlayer.stamina = msg.maxStamina; }
+    updateHUD();
+  }
+}
+
+function onLoot(msg) {
+  const items = (msg.items || []).map(d => `${d.qty}× ${d.item}`).join(', ');
+  chatLine(`✦ ${items}`, '#4acc44', 'loot');
+  if (myPlayer && msg.items) {
+    msg.items.forEach(i => { if (i.item === 'Ouro') myPlayer.gold = (myPlayer.gold||0) + i.qty; });
+    updateHUD();
+  }
+}
+
+function onDied(msg) {
+  gameState = 'dead';
+  activeNpc = null;
+  updateNpcFocus();
+  document.getElementById('dead-msg').textContent =
+    msg.killerName ? `Abatido por ${msg.killerName}. O destino não perdoa os fracos.`
+                   : 'O destino recusou sua existência.';
+  document.getElementById('ov-dead').style.display = 'flex';
+}
+
+// ─── Rendering ───────────────────────────────────────────────────────────
+function updateCam() {
+  if (!myPlayer || !gameMap) return;
+  camera.x = myPlayer.x * TS - canvas.width  / 2 + TS / 2;
+  camera.y = myPlayer.y * TS - canvas.height / 2 + TS / 2;
+  camera.x = Math.max(0, Math.min(camera.x, gameMap.width  * TS - canvas.width));
+  camera.y = Math.max(0, Math.min(camera.y, gameMap.height * TS - canvas.height));
+}
+
+function renderMap() {
+  if (!gameMap) return;
+  const sx = Math.max(0, Math.floor(camera.x / TS) - 1);
+  const sy = Math.max(0, Math.floor(camera.y / TS) - 1);
+  const ex = Math.min(gameMap.width,  sx + Math.ceil(canvas.width  / TS) + 3);
+  const ey = Math.min(gameMap.height, sy + Math.ceil(canvas.height / TS) + 3);
+
+  for (let ty = sy; ty < ey; ty++) {
+    for (let tx = sx; tx < ex; tx++) {
+      const tile  = gameMap.tiles[ty * gameMap.width + tx];
+      const px    = tx * TS - camera.x;
+      const py    = ty * TS - camera.y;
+      ctx.fillStyle = TILE_CLR[tile] ?? '#1a1510';
+      ctx.fillRect(px, py, TS, TS);
+      if (TILE_ACCENT[tile]) {
+        ctx.fillStyle = TILE_ACCENT[tile] + '55';
+        ctx.fillRect(px + 4, py + 4, TS - 8, TS - 8);
+      }
+
+      const site = gameMap.sites?.[String(ty * gameMap.width + tx)];
+      if (site?.kind === 'farm_plot') {
+        ctx.fillStyle = site.stage === 'ready' ? '#c9a84cbb' : site.crop ? '#4c8f46aa' : '#7a5e2aaa';
+        ctx.fillRect(px + 8, py + 8, TS - 16, TS - 16);
+        ctx.fillStyle = site.stage === 'ready' ? '#f0d080' : '#1a1408';
+        ctx.fillRect(px + 12, py + 12, TS - 24, TS - 24);
+      }
+    }
+  }
+}
+
+function renderEntities() {
+  entities.forEach(e => {
+    const px = e.x * TS - camera.x;
+    const py = e.y * TS - camera.y;
+    if (px < -TS || py < -TS || px > canvas.width + TS || py > canvas.height + TS) return;
+
+    const isMe = (e.id === myPlayerId);
+    // Shadow / glow
+    if (isMe) { ctx.fillStyle = '#c9a84c22'; ctx.fillRect(px - 2, py - 2, TS + 4, TS + 4); }
+
+    // Body
+    ctx.fillStyle = e.type === 'monster' ? '#3a0808'
+            : e.type === 'npc'     ? '#123127'
+            : isMe                 ? '#2a1e0a'
+                       : '#0a1a2a';
+    ctx.fillRect(px + 1, py + 1, TS - 2, TS - 2);
+
+    // Symbol / char
+    ctx.font         = `${TS * 0.55}px sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = e.type === 'monster' ? '#cc4444'
+             : e.type === 'npc'     ? '#7fb7a3'
+             : isMe                 ? '#c9a84c'
+                        : '#6a8acc';
+    const sym = e.char || (e.type === 'player' ? '◉' : e.type === 'npc' ? '☺' : '▲');
+    ctx.fillText(sym, px + TS / 2, py + TS / 2 + 1);
+
+    // HP bar
+    if (e.type !== 'npc' && e.maxHp > 0) {
+      const bw   = TS - 4;
+      const fill = Math.max(0, (e.hp / e.maxHp));
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(px + 2, py + TS - 6, bw, 4);
+      ctx.fillStyle = fill > 0.5 ? '#2a8a2a' : fill > 0.25 ? '#8a8a2a' : '#8a2a2a';
+      ctx.fillRect(px + 2, py + TS - 6, Math.ceil(bw * fill), 4);
+    }
+
+    // Name tag (only if near player)
+    if (myPlayer) {
+      const dist = Math.max(Math.abs(e.x - myPlayer.x), Math.abs(e.y - myPlayer.y));
+      if (dist <= 6 && !isMe) {
+        ctx.font         = `${TS * 0.3}px Cinzel, serif`;
+        ctx.textAlign    = 'center';
+        ctx.textBaseline = 'bottom';
+        ctx.fillStyle    = e.type === 'monster' ? '#cc444488' : e.type === 'npc' ? '#7fb7a388' : '#6a8acc88';
+        ctx.fillText(e.name || '', px + TS / 2, py - 2);
+      }
+    }
+  });
+}
+
+function renderFloating() {
+  for (let i = floatTexts.length - 1; i >= 0; i--) {
+    const f = floatTexts[i];
+    const alpha = 1 - f.age / f.maxAge;
+    const sx    = f.wx - camera.x;
+    const sy    = f.wy - camera.y - f.age * 0.5;
+    ctx.globalAlpha = alpha;
+    ctx.font         = `bold ${f.text.startsWith('!!') ? 18 : 13}px Cinzel, serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = f.color;
+    ctx.fillText(f.text.replace('!!',''), sx, sy);
+    f.age++;
+    if (f.age >= f.maxAge) floatTexts.splice(i, 1);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function updateMinimap() {
+  if (!gameMap) return;
+  const sw = 2, sh = 2;
+  mm.width  = gameMap.width  * sw;
+  mm.height = gameMap.height * sh;
+
+  gameMap.tiles.forEach((tile, i) => {
+    const tx = i % gameMap.width, ty = Math.floor(i / gameMap.width);
+    mmCtx.fillStyle = TILE_CLR[tile] ?? '#1a1510';
+    mmCtx.fillRect(tx * sw, ty * sh, sw, sh);
+  });
+
+  // Entities
+  entities.forEach(e => {
+    mmCtx.fillStyle = e.id === myPlayerId ? '#c9a84c' : e.type === 'monster' ? '#cc4444' : e.type === 'npc' ? '#63b79f' : '#4a6acc';
+    mmCtx.fillRect(e.x * sw - 1, e.y * sh - 1, 3, 3);
+  });
+}
+
+// ─── HUD ──────────────────────────────────────────────────────────────────
+function updateHUD() {
+  const p = myPlayer || charData;
+  if (!p) return;
+
+  document.getElementById('hud-name').textContent =
+    `${p.name || '—'}  ·  Nv ${p.level || 1}  ·  ${p.profession || ''}`;
+  document.getElementById('hud-sub').textContent =
+    `${p.className || p.profession || 'Aventureiro'}  ·  ${activeNpc ? `Falando com ${activeNpc.name}` : 'Sem interlocutor ativo'}`;
+
+  const hpPct = Math.min(100, Math.max(0, (p.hp / (p.maxHp || 1)) * 100)).toFixed(1) + '%';
+  const mpPct = Math.min(100, Math.max(0, (p.mp  / (p.maxMp || 1)) * 100)).toFixed(1) + '%';
+  const hpFill = document.getElementById('hp-fill');
+  hpFill.style.width = hpPct;
+  hpFill.classList.toggle('regen', isRegen);
+  document.getElementById('mp-fill').style.width = mpPct;
+  document.getElementById('hp-val').textContent  = `${Math.floor(p.hp||0)}/${Math.floor(p.maxHp||0)}`;
+  document.getElementById('mp-val').textContent  = `${Math.floor(p.mp||0)}/${Math.floor(p.maxMp||0)}`;
+  const stam  = p.stamina    ?? 100;
+  const maxSt = p.maxStamina ?? 100;
+  const stPct = Math.min(100, Math.max(0, (stam / (maxSt || 1)) * 100)).toFixed(1) + '%';
+  document.getElementById('st-fill').style.width = stPct;
+  document.getElementById('st-val').textContent  = `${Math.floor(stam)}/${Math.floor(maxSt)}`;
+  document.getElementById('hud-stats').textContent =
+    `ATK ${p.atk || 0}  DEF ${p.def || 0}  SPD ${p.spd || 0}  EXP ${p.exp || 0}  OURO ${p.gold || 0}`;
+  const effects = Array.isArray(p.statusEffects) ? p.statusEffects : [];
+  document.getElementById('hud-effects').innerHTML = effects.length
+    ? effects.map(effect => `<span class="hud-effect ${effect.type === 'negative' ? 'neg' : 'pos'}">${effect.label}</span>`).join('')
+    : '<span class="hud-effect">Sem efeitos</span>';
+
+  updateTimeHUD();
+
+  document.getElementById('gold-display').textContent = `Ouro: ${p.gold || 0}`;
+
+  const invList = document.getElementById('inv-list');
+  if (myPlayer && myPlayer.inventory) {
+    invList.innerHTML = myPlayer.inventory.length
+      ? myPlayer.inventory.map((i, index) => `
+          <button class="inv-item-btn" data-index="${index}">
+            ${i.qty || 1}× ${i.name}
+            <span class="inv-item-meta">${i.slot ? `Equipar em ${i.slot}` : (i.description || i.type || 'Material')}</span>
+          </button>`).join('')
+      : '<div style="color:#3a2e14">Vazio</div>';
+  }
+
+  const equipList = document.getElementById('equip-list');
+  const equipment = p.equipment || {};
+  const slots = ['weapon', 'armor', 'helmet', 'boots', 'ring'];
+  equipList.innerHTML = slots.map(slot => equipment[slot]
+    ? `<button class="equip-item-btn" data-slot="${slot}">${equipment[slot].name}<span class="inv-item-meta">Remover de ${slot}</span></button>`
+    : `<div class="panel-note">${slot}: vazio</div>`
+  ).join('');
+
+  updateActionPanel();
+}
+
+function questStateLabel(state) {
+  if (state === 'ready_to_turn_in') return 'Pronta para entrega';
+  if (state === 'accepted') return 'Em andamento';
+  if (state === 'completed') return 'Concluida';
+  return 'Disponivel';
+}
+
+function renderNpcTradeOffers(tradeOffers) {
+  if (!Array.isArray(tradeOffers) || !tradeOffers.length) return '';
+  return `<div class="npc-section-title">COMERCIO</div><div class="npc-service-list">${tradeOffers.map(offer => `
+    <button class="npc-service-btn" data-npc-action="buy_item" data-offer-id="${offer.offerId}">
+      Comprar ${offer.name}
+      <span class="npc-service-note">${offer.finalPrice} ouro${offer.discountPercent ? ` · base ${offer.basePrice}` : ''}</span>
+    </button>`).join('')}</div>`;
+}
+
+function renderNpcQuests(quests) {
+  if (!Array.isArray(quests) || !quests.length) return '';
+  return `<div class="npc-section-title">MISSOES LOCAIS</div><div class="npc-service-list">${quests.map(quest => {
+    let button = '';
+    if (quest.canAccept) button = `<button class="npc-service-btn" data-npc-action="accept_quest" data-quest-id="${quest.questId}">Aceitar missao<span class="npc-service-note">${quest.requiredQty}x ${quest.objectiveItemName} · recompensa ${quest.rewardGold} ouro</span></button>`;
+    else if (quest.canTurnIn) button = `<button class="npc-service-btn" data-npc-action="turn_in_quest" data-quest-id="${quest.questId}">Entregar agora<span class="npc-service-note">Objetivo completo · ${quest.rewardGold} ouro${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</span></button>`;
+    else if (quest.state === 'completed') button = `<button class="npc-service-btn" disabled>Contrato encerrado<span class="npc-service-note">${quest.rewardNote || 'Favor concluido.'}</span></button>`;
+    else button = `<button class="npc-service-btn" disabled>Coleta em andamento<span class="npc-service-note">${quest.currentQty}/${quest.requiredQty} ${quest.objectiveItemName}</span></button>`;
+    return `${button}`;
+  }).join('')}</div>`;
+}
+
+function updateNpcFocus() {
+  const panel = document.getElementById('npc-focus');
+  if (!activeNpc) {
+    panel.style.display = 'none';
+    panel.innerHTML = '';
+    updateHUD();
+    return;
+  }
+  const relation = activeNpc.relation || null;
+  const relationLine = relation
+    ? `Afinidade ${relation.affinity || 0} · ${relation.affinityLabel || 'estranho'} · ${relation.conversationCount || 0} conversas`
+    : 'Sem historico registrado';
+  const memoryLine = relation?.memorySummary || 'Ainda nao ha memoria forte entre voces.';
+  const serviceChips = relation?.unlocks?.services || [];
+  panel.style.display = 'block';
+  panel.innerHTML = `<strong>${activeNpc.name}</strong> · ${activeNpc.profession}<br>${activeNpc.personality} · ${activeNpc.district} · fala sobre ${activeNpc.topic}<br>${relationLine}<br>${memoryLine}` +
+    (serviceChips.length ? `<div class="npc-chip-row">${serviceChips.map(chip => `<span class="npc-chip">${chip}</span>`).join('')}</div>` : '') +
+    renderNpcTradeOffers(activeNpc.tradeOffers) +
+    renderNpcQuests(activeNpc.quests);
+  updateHUD();
+}
+
+function formatActionCooldown(ms) {
+  const totalSeconds = Math.max(1, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes <= 0) return `${seconds}s`;
+  return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+}
+
+function updateActionPanel() {
+  const terrain = document.getElementById('action-terrain');
+  const list = document.getElementById('action-list');
+  if (!terrain || !list) return;
+
+  if (!interactionContext) {
+    terrain.textContent = 'Exploração ativa. Nenhuma ação contextual disponível.';
+    list.innerHTML = '';
+    return;
+  }
+
+  terrain.textContent = `${BIOME_LABEL[interactionContext.biome] || interactionContext.biome} · ${interactionContext.terrain}`;
+  const actions = Array.isArray(interactionContext.actions) ? interactionContext.actions : [];
+  if (!actions.length) {
+    list.innerHTML = '<div class="panel-note">Sem atividades no tile atual. Explore margens, montanhas, dungeons e solo fertil.</div>';
+    return;
+  }
+
+  list.innerHTML = actions.slice(0, 3).map((action, index) => {
+    const cooldown = action.cooldownMs > 0 ? ` · ${formatActionCooldown(action.cooldownMs)}` : '';
+    return `
+      <button class="action-btn" data-action="${action.id}" ${action.disabled ? 'disabled' : ''}>
+        ${index + 1}. ${action.label}
+        <span class="action-meta">${action.detail || 'Sem detalhes adicionais.'}${cooldown}</span>
+      </button>`;
+  }).join('');
+}
+
+function useInteractionAction(index) {
+  const actions = interactionContext?.actions || [];
+  const action = actions[index];
+  if (!action || action.disabled) return false;
+  sendWS({ type:'interact', actionId: action.id });
+  return true;
+}
+
+// ─── Input ────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+
+  if (gameState !== 'playing') return;
+  if (chatFocused) return;
+
+  if (e.code === 'Space' || e.code === 'KeyF') { e.preventDefault(); attackNearest(); }
+  if (e.code === 'KeyE')  {
+    e.preventDefault();
+    if (!useInteractionAction(0)) sendWS({ type:'interact' });
+  }
+  if (e.code === 'Digit1') { e.preventDefault(); useInteractionAction(0); }
+  if (e.code === 'Digit2') { e.preventDefault(); useInteractionAction(1); }
+  if (e.code === 'Digit3') { e.preventDefault(); useInteractionAction(2); }
+  if (e.code === 'KeyT')  { e.preventDefault(); document.getElementById('chat-input').focus(); }
+  if (e.code === 'KeyI')  { e.preventDefault(); toggleInv(); }
+  if (e.code === 'KeyM')  { e.preventDefault(); openWorldMap(); }
+  if (e.code === 'KeyC')  { e.preventDefault(); openCharSheet(); }
+  if (e.code === 'Escape') {
+    document.getElementById('controls-panel').style.display = 'none';
+    closeWorldMap();
+    closeCharSheet();
+    closeAdminPanel();
+  }
+});
+document.addEventListener('keyup', e => { keys[e.code] = false; });
+
+canvas.addEventListener('click', e => {
+  if (gameState !== 'playing') return;
+  const rect = canvas.getBoundingClientRect();
+  const tx   = Math.floor((e.clientX - rect.left + camera.x) / TS);
+  const ty   = Math.floor((e.clientY - rect.top  + camera.y) / TS);
+  for (const [id, ent] of entities) {
+    if (ent.x === tx && ent.y === ty && id !== myPlayerId) {
+      if (ent.type === 'npc') {
+        sendWS({ type:'interact', targetId: id });
+        return;
+      }
+      sendWS({ type:'attack', targetId: id });
+      return;
+    }
+  }
+});
+
+document.getElementById('chat-input').addEventListener('focus',   () => { chatFocused = true; });
+document.getElementById('chat-input').addEventListener('blur',    () => { chatFocused = false; });
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const text = document.getElementById('chat-input').value.trim();
+    if (text) {
+      sendWS(activeNpc ? { type:'npc_chat', npcId: activeNpc.id, text } : { type:'chat', text });
+      document.getElementById('chat-input').value = '';
+    }
+    document.getElementById('chat-input').blur();
+  }
+  if (e.key === 'Escape') document.getElementById('chat-input').blur();
+});
+document.getElementById('chat-send').addEventListener('click', () => {
+  const text = document.getElementById('chat-input').value.trim();
+  if (text) {
+    sendWS(activeNpc ? { type:'npc_chat', npcId: activeNpc.id, text } : { type:'chat', text });
+    document.getElementById('chat-input').value = '';
+  }
+});
+
+document.getElementById('inv-list').addEventListener('click', e => {
+  const button = e.target.closest('[data-index]');
+  if (!button) return;
+  sendWS({ type: 'equip', index: Number(button.dataset.index) });
+});
+
+document.getElementById('equip-list').addEventListener('click', e => {
+  const button = e.target.closest('[data-slot]');
+  if (!button) return;
+  sendWS({ type: 'unequip', slot: button.dataset.slot });
+});
+
+document.getElementById('action-list').addEventListener('click', e => {
+  const button = e.target.closest('[data-action]');
+  if (!button) return;
+  sendWS({ type: 'interact', actionId: button.dataset.action });
+});
+
+document.getElementById('npc-focus').addEventListener('click', e => {
+  const button = e.target.closest('[data-npc-action]');
+  if (!button) return;
+  if (button.dataset.npcAction === 'buy_item') sendNpcService('buy_item', { offerId: button.dataset.offerId });
+  if (button.dataset.npcAction === 'accept_quest') sendNpcService('accept_quest', { questId: button.dataset.questId });
+  if (button.dataset.npcAction === 'turn_in_quest') sendNpcService('turn_in_quest', { questId: button.dataset.questId });
+});
+
+function attackNearest() {
+  if (!myPlayer) return;
+  let nearId = null, nearDist = Infinity;
+  entities.forEach((e, id) => {
+    if (id === myPlayerId) return;
+    if (e.type === 'npc') return;
+    const d = Math.max(Math.abs(e.x - myPlayer.x), Math.abs(e.y - myPlayer.y));
+    if (d <= 1 && d < nearDist) { nearDist = d; nearId = id; }
+  });
+  if (nearId) sendWS({ type:'attack', targetId: nearId });
+}
+
+function sendMove(dir) {
+  if (gameState !== 'playing') return;
+  sendWS({ type:'move', dir });
+  // Optimistic client-side prediction
+  if (!myPlayer || !gameMap) return;
+  const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
+  const [dx, dy] = DIRS[dir] || [0,0];
+  const nx = myPlayer.x + dx, ny = myPlayer.y + dy;
+  if (nx >= 0 && ny >= 0 && nx < gameMap.width && ny < gameMap.height) {
+    const SOLID = new Set([1, 2, 3, 6]); // tree, water, rock, wall
+    if (!SOLID.has(gameMap.tiles[ny * gameMap.width + nx])) {
+      myPlayer.x = nx; myPlayer.y = ny;
+      updateCam();
+    }
+  }
+}
+
+// ─── Character creation ──────────────────────────────────────────────────
+function selGender(g) {
+  selGenderVal = g;
+  document.querySelectorAll('.gender-btn').forEach((b, i) =>
+    b.classList.toggle('sel', ['M','F','N'][i] === g));
+}
+selGender('M');
+
+async function createChar() {
+  const name = document.getElementById('cc-name').value.trim();
+  const err  = document.getElementById('cc-err');
+  err.textContent = '';
+  if (!name) { err.textContent = 'Digite um nome.'; return; }
+  if (!selGenderVal) { err.textContent = 'Selecione um gênero.'; return; }
+
+  document.getElementById('cc-btn').disabled = true;
+  document.getElementById('cc-btn').textContent = 'INVOCANDO…';
+
+  try {
+    const r = await fetch('/api/character/create', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
+      body: JSON.stringify({ name, gender: selGenderVal }),
+    });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Erro.'; return; }
+
+    const c = d.character;
+    const BIOME_PT = { forest:'Floresta', desert:'Deserto', mountain:'Montanha', city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+    charData = c;
+    persistSessionState({ ...sessionState, hasCharacter: true });
+
+    document.getElementById('cc-btn').style.display = 'none';
+    document.getElementById('cc-details').innerHTML = `
+      <div class="rline"><span class="rlabel">NOME</span>     <span class="rval">${c.name} ${c.surname}</span></div>
+      <div class="rline"><span class="rlabel">ORIGEM</span>   <span class="rval">${BIOME_PT[c.biome] || c.biome}</span></div>
+      <div class="rline"><span class="rlabel">PROFISSÃO</span><span class="rval">${c.profession}</span></div>
+      <div class="rline"><span class="rlabel">TRAÇOS</span>   <span class="rval">${(c.traits||[]).join(' · ')}</span></div>
+      <div class="rline"><span class="rlabel">HP</span>       <span class="rval">${c.maxHp ?? c.max_hp}</span></div>
+      <div class="rline"><span class="rlabel">ATK / DEF</span><span class="rval">${c.atk} / ${c.def}</span></div>
+      <div class="rline"><span class="rlabel">DESTINO</span>  <span class="rval">${(c.familySlot || c.family_slot || {}).type || '—'}</span></div>
+    `;
+    document.getElementById('cc-reveal').style.display = 'block';
+
+  } catch { err.textContent = 'Servidor inacessível.'; }
+  finally {
+    document.getElementById('cc-btn').disabled = false;
+    document.getElementById('cc-btn').textContent = '✦ LANÇAR NO MUNDO';
+  }
+}
+
+function acceptDest() {
+  gameState = 'charCreate';
+  document.getElementById('cc-reveal').style.display = 'none';
+  // Connect WS and auth — server will send init
+  connect();
+}
+
+function toggleInv() {
+  invOpen = !invOpen;
+  document.getElementById('inv-panel').style.display  = invOpen ? 'block' : 'none';
+  document.getElementById('inv-toggle').style.display  = invOpen ? 'none'  : 'block';
+}
+
+// ─── Time & night overlay ─────────────────────────────────────────────────
+function nightAlpha(h, m) {
+  const t = h + m / 60;
+  if (t >= 8  && t < 18)  return 0;
+  if (t >= 6  && t < 8)   return 0.45 * (1 - (t - 6)  / 2);
+  if (t >= 18 && t < 20)  return 0.45 * ((t - 18) / 2);
+  if (t >= 20 && t < 22)  return 0.45 + 0.2 * ((t - 20) / 2);
+  if (t >= 4  && t < 6)   return 0.65 - 0.2 * ((t - 4)  / 2);
+  return 0.65; // 22:00–04:00 deep night
+}
+
+function renderNightOverlay() {
+  if (!gameTime) return;
+  const alpha = nightAlpha(gameTime.hour, gameTime.minute);
+  if (alpha <= 0) return;
+  ctx.fillStyle = `rgba(8, 12, 40, ${alpha.toFixed(3)})`;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function updateTimeHUD() {
+  if (!gameTime) {
+    const loc = gameMap ? `${BIOME_LABEL[gameMap.biome] || gameMap.biome}  [${gameMap.x}, ${gameMap.y}]` : '—';
+    document.getElementById('hud-tc').textContent = loc;
+    return;
+  }
+  const { hour, minute, day, year, isNight } = gameTime;
+  const hh  = String(hour).padStart(2, '0');
+  const mn  = String(minute).padStart(2, '0');
+  const icon = isNight ? '☾' : '✦';
+  const loc  = gameMap ? `${BIOME_LABEL[gameMap.biome] || gameMap.biome}  [${gameMap.x}, ${gameMap.y}]` : '—';
+  document.getElementById('hud-tc').innerHTML =
+    `<div style="margin-bottom:1px">${loc}</div>` +
+    `<div style="font-size:.52rem;letter-spacing:.12em;color:${isNight ? '#6a7acca0' : '#c9a84c88'}">${icon} ${hh}:${mn} &nbsp;·&nbsp; Dia ${day} &nbsp;·&nbsp; Ano ${year}</div>`;
+}
+
+function onTime(msg) {
+  const wasNight = gameTime?.isNight;
+  gameTime = msg;
+  updateTimeHUD();
+  if (wasNight !== undefined && wasNight !== msg.isNight) {
+    chatLine(
+      msg.isNight ? '☾ A noite cobre o mundo. Mais criaturas espreitam nas sombras.'
+                  : '✦ O amanhecer chega. As criaturas da noite recuam.',
+      msg.isNight ? '#4a5a9a' : '#8a7a3a', 'sys'
+    );
+  }
+}
+
+function onHpRegen(msg) {
+  if (!myPlayer) return;
+  const gained   = msg.hp - myPlayer.hp;
+  myPlayer.hp    = msg.hp;
+  myPlayer.maxHp = msg.maxHp;
+  isRegen = true;
+  updateHUD();
+  clearTimeout(regenTimeout);
+  regenTimeout = setTimeout(() => { isRegen = false; updateHUD(); }, 2500);
+  // Floating green regen text above player
+  if (myPlayer && gained > 0) {
+    floatTexts.push({
+      wx: myPlayer.x * TS + TS / 2, wy: myPlayer.y * TS - 4,
+      text: `+${Math.floor(gained)}`, color: '#3acc3a', age: 0, maxAge: 50,
+    });
+  }
+}
+
+function onStaminaUpdate(msg) {
+  if (!myPlayer) return;
+  myPlayer.stamina    = msg.stamina;
+  myPlayer.maxStamina = msg.maxStamina;
+  updateHUD();
+}
+
+function onStaminaLow() {
+  if (!myPlayer) return;
+  const now = Date.now();
+  if (now - stamLowCooldown < 2000) return; // debounce 2s
+  stamLowCooldown = now;
+  floatTexts.push({ wx: myPlayer.x * TS + TS / 2, wy: myPlayer.y * TS - 4,
+    text: 'EXAUSTO!', color: '#c99000', age: 0, maxAge: 65 });
+  chatLine('⚡ Sem estamina — aguarde recuperação.', '#7a6a10', 'sys');
+  const stFill = document.getElementById('st-fill');
+  if (stFill) { stFill.classList.add('low'); setTimeout(() => stFill.classList.remove('low'), 1400); }
+}
+
+// ─── Controls toggle ──────────────────────────────────────────────────────
+function toggleHelp() {
+  const p = document.getElementById('controls-panel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+
+function openAdminPanel() {
+  if (!sessionState.isGm) return;
+  document.getElementById('gm-admin-modal').style.display = 'flex';
+  document.getElementById('gm-admin-target').focus();
+}
+
+function closeAdminPanel() {
+  document.getElementById('gm-admin-modal').style.display = 'none';
+}
+
+function setAdminFeedback(text, tone) {
+  const feedback = document.getElementById('gm-admin-feedback');
+  feedback.textContent = text;
+  feedback.classList.remove('ok', 'err');
+  if (tone === 'ok') feedback.classList.add('ok');
+  if (tone === 'err') feedback.classList.add('err');
+}
+
+function getAdminTarget() {
+  const input = document.getElementById('gm-admin-target');
+  const username = input.value.trim();
+  if (!username) {
+    setAdminFeedback('Informe o username alvo antes de executar a ação.', 'err');
+    input.focus();
+    return null;
+  }
+  return username;
+}
+
+async function postAdminAction(url, body) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+    body: JSON.stringify(body),
+  });
+
+  let data = null;
+  try { data = await r.json(); }
+  catch { data = null; }
+
+  if (r.status === 401) {
+    clearSessionState();
+    window.location.href = '/';
+    return null;
+  }
+
+  if (r.status === 403 && data?.error === 'Acesso restrito a GMs') {
+    persistSessionState({ ...sessionState, isGm: false });
+  }
+
+  if (!r.ok) {
+    setAdminFeedback(data?.error || 'Falha ao executar ação administrativa.', 'err');
+    return null;
+  }
+
+  return data;
+}
+
+async function submitCooldownExemption(enabled) {
+  const username = getAdminTarget();
+  if (!username) return;
+
+  setAdminFeedback('Aplicando alteração de cooldown...', null);
+  const data = await postAdminAction('/api/admin/death-cooldown-exemption', { username, bypass: enabled });
+  if (!data) return;
+
+  const verb = enabled ? 'agora ignora o cooldown de morte' : 'voltou a seguir a regra de 24h';
+  setAdminFeedback(`${data.username} ${verb}.`, 'ok');
+  chatLine(`☬ Admin: ${data.username} ${verb}.`, '#c9a84c', 'sys');
+
+  if (data.username.toLowerCase() === (sessionState.username || '').toLowerCase()) {
+    persistSessionState({ ...sessionState, bypassDeathCooldown: enabled });
+  }
+}
+
+async function submitGmRole(enabled) {
+  const username = getAdminTarget();
+  if (!username) return;
+
+  setAdminFeedback('Aplicando alteração de cargo GM...', null);
+  const data = await postAdminAction('/api/admin/gm-role', { username, isGm: enabled });
+  if (!data) return;
+
+  const verb = enabled ? 'foi promovido a GM' : 'deixou de ser GM';
+  setAdminFeedback(`${data.username} ${verb}.`, 'ok');
+  chatLine(`☬ Admin: ${data.username} ${verb}.`, '#c9a84c', 'sys');
+
+  if (data.username.toLowerCase() === (sessionState.username || '').toLowerCase()) {
+    persistSessionState({ ...sessionState, isGm: enabled });
+  }
+}
+
+// ─── Character sheet ─────────────────────────────────────────────────────────────
+function openCharSheet() {
+  if (gameState !== 'playing') return;
+  document.getElementById('charsheet-modal').style.display = 'flex';
+  loadCharSheet();
+}
+
+function closeCharSheet() {
+  document.getElementById('charsheet-modal').style.display = 'none';
+}
+
+async function loadCharSheet() {
+  try {
+    const r = await fetch('/api/character/sheet', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    renderCharSheet(await r.json());
+  } catch { /* offline graceful */ }
+}
+
+const BIOME_PT_C  = { forest:'Floresta', desert:'Deserto', mountain:'Montanha', city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+const GENDER_PT_C = { M:'Masculino', F:'Feminino', N:'Neutro' };
+
+function normalizeLifeSkillsForView(raw) {
+  if (Array.isArray(raw)) return raw;
+  if (!raw || typeof raw !== 'object') return [];
+  return Object.entries(raw).map(([id, state]) => ({
+    id,
+    name: id,
+    level: state?.level || 1,
+    xp: state?.xp || 0,
+    nextLevelXp: (state?.level || 1) * 90,
+    unlocks: [],
+  }));
+}
+
+function renderCharSheet({ character: c, chronicles, quests }) {
+  if (!c) return;
+  const p = myPlayer || {};
+  const hp      = p.hp         ?? c.hp;
+  const maxHp   = p.maxHp      ?? c.maxHp ?? c.max_hp;
+  const mp      = p.mp         ?? c.mp;
+  const maxMp   = p.maxMp      ?? c.maxMp ?? c.max_mp;
+  const stamina = p.stamina    ?? 100;
+  const maxSt   = p.maxStamina ?? 110;
+  const kills   = p.kills      ?? c.kills   ?? 0;
+  const days    = Math.max(0, Math.floor((Date.now() - new Date(c.created_at || Date.now()).getTime()) / 86400000));
+  const equip   = p.equipment  || (typeof c.equipment === 'object' ? c.equipment : {});
+  const skills  = p.skills || c.skills || [];
+  const lifeSkills = normalizeLifeSkillsForView(p.lifeSkills || c.lifeSkills || c.life_skills || []);
+  const effects = p.statusEffects || c.statusEffects || [];
+  const className = p.className || c.className || c.profession;
+  const disciplines = Object.entries(p.skillXp || c.skillXp || c.skill_xp || {});
+  const questList = Array.isArray(quests) ? quests : [];
+
+  // Identity
+  document.getElementById('csh-portrait').textContent = p.char || '\u25C9';
+  document.getElementById('csh-charname').textContent = `${c.name} ${c.surname}`;
+  document.getElementById('csh-charinfo').innerHTML =
+    `${c.profession}<br>${className}<br>${BIOME_PT_C[c.biome] || c.biome} \u00b7 ${GENDER_PT_C[c.gender] || c.gender}<br>` +
+    `<span style="color:#c9a84c66;font-size:.54rem">${(c.traits || []).join(' \u00b7 ')}</span>`;
+
+  // Equipment
+  const SLOTS = [
+    { key:'weapon', icon:'\u2694', label:'Arma'     },
+    { key:'armor',  icon:'\uD83D\uDEE1', label:'Armadura' },
+    { key:'helmet', icon:'\u26D1', label:'Elmo'     },
+    { key:'boots',  icon:'\uD83D\uDC5F', label:'Botas'    },
+    { key:'ring',   icon:'\uD83D\uDC8D', label:'Anel'     },
+  ];
+  document.getElementById('csh-equips').innerHTML = SLOTS.map(s =>
+    `<div class="csh-equip-slot">
+      <span class="csh-slot-icon">${s.icon}</span>
+      <span class="csh-slot-label">${s.label}</span>
+      ${equip[s.key]
+        ? `<span class="csh-slot-item">${equip[s.key].name || equip[s.key]}</span>`
+        : `<span class="csh-slot-empty">— vazio —</span>`}
+    </div>`
+  ).join('');
+
+  // Status bars
+  const bar = (lbl, val, max, grad) => {
+    const pct = Math.min(100, Math.max(0, (val / (max || 1)) * 100)).toFixed(1);
+    return `<div class="csh-bar-row">
+      <div class="csh-bar-lbl"><span>${lbl}</span><span>${Math.floor(val)}/${Math.floor(max)}</span></div>
+      <div class="csh-bar-bg"><div style="width:${pct}%;height:100%;background:${grad}"></div></div>
+    </div>`;
+  };
+  document.getElementById('csh-status').innerHTML =
+    bar('HP', hp, maxHp, 'linear-gradient(to right,#8b2020,#cc3030)') +
+    bar('MP', mp, maxMp, 'linear-gradient(to right,#1a3a7a,#2a6acc)') +
+    bar('ST', stamina, maxSt, 'linear-gradient(to right,#6a4800,#c9a000)');
+
+  // Attributes
+  const lv    = p.level ?? c.level ?? 1;
+  const xpNxt = Math.floor(100 * Math.pow(1.5, lv - 1));
+  document.getElementById('csh-attrs').innerHTML = [
+    ['NÍVEL',      lv],
+    ['EXP',       `${p.exp ?? c.exp ?? 0} / ${xpNxt}`],
+    ['ATQ',       p.atk ?? c.atk],
+    ['DEF',       p.def ?? c.def],
+    ['VEL',       p.spd ?? c.spd],
+    ['ESTÂMINA',  `${Math.floor(stamina)}/${Math.floor(maxSt)}`],
+    ['OURO',      p.gold ?? c.gold ?? 0],
+    ['ABATES',    kills],
+    ['DIAS VIVO', days],
+  ].map(([k,v]) =>
+    `<div class="csh-stat-row"><span class="csh-stat-label">${k}</span><span class="csh-stat-val">${v}</span></div>`
+  ).join('');
+
+  // Achievements
+  const ACHS = [
+    { icon:'\u2B50', name:'Nascido no Destino',  desc:'Criou um personagem',         ok: true },
+    { icon:'\uD83D\uDC63', name:'Primeiro Passo', desc:'Entrou no mundo',           ok: true },
+    { icon:'\u2694',  name:'Primeiro Sangue',     desc:'Abateu 1 inimigo',           ok: kills >= 1 },
+    { icon:'\uD83D\uDDE1', name:'Ca\u00e7ador',   desc:'Abateu 5 inimigos',          ok: kills >= 5 },
+    { icon:'\uD83D\uDC80', name:'Ceifador',       desc:'Abateu 20 inimigos',         ok: kills >= 20 },
+    { icon:'\uD83D\uDD31', name:'Exterminador',   desc:'Abateu 100 inimigos',        ok: kills >= 100 },
+    { icon:'\uD83D\uDCC5', name:'Sobrevivente',   desc:'Sobreviveu 1 dia real',      ok: days >= 1 },
+    { icon:'\uD83C\uDF19', name:'Veterano',       desc:'Sobreviveu 7 dias',          ok: days >= 7 },
+  ];
+  document.getElementById('csh-achs').innerHTML = '<div class="csh-ach-list">' +
+    ACHS.map(a =>
+      `<div class="csh-ach${a.ok ? ' unlocked' : ''}">
+        <span class="csh-ach-icon">${a.ok ? a.icon : '\u2610'}</span>
+        <div>
+          <div class="csh-ach-name">${a.name}</div>
+          <div class="csh-ach-desc">${a.desc}</div>
+        </div>
+      </div>`
+    ).join('') + '</div>';
+
+  document.getElementById('csh-skills').innerHTML =
+    `<div class="csh-stat-row"><span class="csh-stat-label">CLASSE</span><span class="csh-stat-val">${className}</span></div>` +
+    `<div class="csh-stat-row"><span class="csh-stat-label">DISCIPLINAS</span><span class="csh-stat-val">${disciplines.map(([k, v]) => `${k}:${v}`).join(' · ') || '—'}</span></div>` +
+    (lifeSkills.length
+      ? lifeSkills.map(skill => `<div class="csh-stat-row"><span class="csh-stat-label">${(skill.name || skill.id).toUpperCase()}</span><span class="csh-stat-val">Nv ${skill.level} · ${skill.xp}/${skill.nextLevelXp || '?'}</span></div>`).join('')
+      : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">Nenhum oficio registrado ainda.</div>') +
+    (skills.length
+      ? `<div class="csh-chip-list" style="margin-top:.5rem">${skills.map(skill => `<span class="csh-chip">${skill.name || skill.id || skill}</span>`).join('')}</div>`
+      : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em;margin-top:.4rem">Nenhuma skill aprendida ainda.</div>');
+
+  document.getElementById('csh-effects').innerHTML = effects.length
+    ? `<div class="csh-chip-list">${effects.map(effect => `<span class="csh-chip ${effect.type === 'negative' ? 'neg' : 'pos'}">${effect.label || effect.id}</span>`).join('')}</div>`
+    : '<div style="color:#3a2e14;font-size:.56rem;letter-spacing:.06em">Sem efeitos ativos.</div>';
+
+  // Chronicles
+  const chron = chronicles || [];
+  document.getElementById('csh-chronicles').innerHTML = chron.length
+    ? chron.map(ch =>
+        `<div class="csh-chronicle"><span class="csh-chr-date">${(ch.created_at||'').slice(0,10)}</span> ${ch.description}</div>`
+      ).join('')
+    : '<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">Nenhuma cr\u00f4nica registrada ainda.</div>';
+
+  document.getElementById('csh-quests').innerHTML = questList.length
+    ? `<div class="csh-quest-list">${questList.map(quest => `
+        <div class="csh-quest ${quest.state === 'completed' ? 'completed' : quest.state === 'ready_to_turn_in' ? 'ready' : ''}">
+          <div class="csh-quest-title">${quest.title} · ${questStateLabel(quest.state)}</div>
+          <div>${quest.npcName || 'Contato local'} pediu ${quest.requiredQty}x ${quest.objectiveItemName}.</div>
+          <div>Progresso: ${quest.currentQty}/${quest.requiredQty}</div>
+          <div>Recompensa: ${quest.rewardGold} ouro${quest.rewardItemName ? ` + ${quest.rewardItemQty}x ${quest.rewardItemName}` : ''}</div>
+        </div>`).join('')}</div>`
+    : '<div style="color:#3a2e14;font-size:.58rem;letter-spacing:.08em">Nenhum contrato ativo ou concluido ainda.</div>';
+}
+
+// ─── World map ────────────────────────────────────────────────────────────
+function positionWmapBtn() {
+  const btn = document.getElementById('wmap-btn');
+  btn.style.top = (12 + mm.height + 5) + 'px';
+}
+
+async function openWorldMap() {
+  if (gameState !== 'playing') return;
+  const modal = document.getElementById('wmap-modal');
+  modal.style.display = 'flex';
+  try {
+    const r = await fetch('/api/worldmap', { headers: { Authorization: 'Bearer ' + token } });
+    if (!r.ok) return;
+    const { zones, current } = await r.json();
+    renderWorldMap(zones, current);
+  } catch { /* ignore */ }
+}
+
+function closeWorldMap() {
+  document.getElementById('wmap-modal').style.display = 'none';
+}
+
+const BIOME_MAP_CLR = {
+  forest:'#1a3010', desert:'#3a2a08', mountain:'#2a2018',
+  city:'#181820',   water:'#0a1525',  plains:'#253008',  anomaly:'#200a22',
+};
+
+function renderWorldMap(zones, current) {
+  const CELL = 9, PAD = 2;
+  const MAX_GRID_CELLS = 50000;
+  if (!zones.length) {
+    document.getElementById('wmap-canvas').getContext('2d').clearRect(0, 0, 1, 1);
+    document.getElementById('wmap-stats').textContent = 'Nenhuma zona descoberta ainda.';
+    return;
+  }
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  zones.forEach(z => {
+    minX = Math.min(minX, z.map_x); minY = Math.min(minY, z.map_y);
+    maxX = Math.max(maxX, z.map_x); maxY = Math.max(maxY, z.map_y);
+  });
+
+  const cols = maxX - minX + 1 + PAD * 2;
+  const rows = maxY - minY + 1 + PAD * 2;
+  const cv   = document.getElementById('wmap-canvas');
+  cv.width   = Math.min(cols * CELL, 580);
+  cv.height  = Math.min(rows * CELL, 400);
+  const cx   = cv.getContext('2d');
+
+  cx.fillStyle = '#060504';
+  cx.fillRect(0, 0, cv.width, cv.height);
+
+  const lookup = new Map();
+  zones.forEach(z => lookup.set(`${z.map_x},${z.map_y}`, z));
+
+  const totalGridCells = cols * rows;
+  let compactMode = false;
+
+  if (totalGridCells <= MAX_GRID_CELLS) {
+    for (let gy = minY - PAD; gy <= maxY + PAD; gy++) {
+      for (let gx = minX - PAD; gx <= maxX + PAD; gx++) {
+        const px = (gx - (minX - PAD)) * CELL;
+        const py = (gy - (minY - PAD)) * CELL;
+        if (px + CELL > cv.width || py + CELL > cv.height) continue;
+
+        const zone = lookup.get(`${gx},${gy}`);
+        if (zone) {
+          cx.fillStyle = BIOME_MAP_CLR[zone.biome] || '#1a1510';
+          cx.fillRect(px, py, CELL - 1, CELL - 1);
+
+          // grid line
+          cx.strokeStyle = '#0a0806';
+          cx.lineWidth   = 0.5;
+          cx.strokeRect(px, py, CELL - 1, CELL - 1);
+
+          // Current zone
+          if (current && gx === current.x && gy === current.y) {
+            cx.fillStyle   = '#c9a84c44';
+            cx.fillRect(px, py, CELL - 1, CELL - 1);
+            cx.strokeStyle = '#c9a84c';
+            cx.lineWidth   = 1.5;
+            cx.strokeRect(px + 0.5, py + 0.5, CELL - 2, CELL - 2);
+            // dot
+            cx.fillStyle = '#c9a84c';
+            cx.fillRect(px + Math.floor((CELL - 2) / 2), py + Math.floor((CELL - 2) / 2), 2, 2);
+          }
+        } else {
+          const hasAdj = [[-1,0],[1,0],[0,-1],[0,1]].some(([dx,dy]) => lookup.has(`${gx+dx},${gy+dy}`));
+          if (hasAdj) {
+            cx.fillStyle = '#111008';
+            cx.fillRect(px, py, CELL - 1, CELL - 1);
+          }
+        }
+      }
+    }
+  } else {
+    compactMode = true;
+    cv.width = 580;
+    cv.height = 400;
+    cx.fillStyle = '#060504';
+    cx.fillRect(0, 0, cv.width, cv.height);
+
+    const spanX = Math.max(1, maxX - minX);
+    const spanY = Math.max(1, maxY - minY);
+
+    zones.forEach(zone => {
+      const nx = (zone.map_x - minX) / spanX;
+      const ny = (zone.map_y - minY) / spanY;
+      const px = Math.max(0, Math.min(cv.width - 3, Math.floor(nx * (cv.width - 3))));
+      const py = Math.max(0, Math.min(cv.height - 3, Math.floor(ny * (cv.height - 3))));
+      cx.fillStyle = BIOME_MAP_CLR[zone.biome] || '#1a1510';
+      cx.fillRect(px, py, 3, 3);
+    });
+
+    if (current) {
+      const nx = (current.x - minX) / spanX;
+      const ny = (current.y - minY) / spanY;
+      const px = Math.max(2, Math.min(cv.width - 3, Math.floor(nx * (cv.width - 1))));
+      const py = Math.max(2, Math.min(cv.height - 3, Math.floor(ny * (cv.height - 1))));
+      cx.strokeStyle = '#c9a84c';
+      cx.lineWidth = 1.2;
+      cx.strokeRect(px - 2, py - 2, 6, 6);
+      cx.fillStyle = '#c9a84c';
+      cx.fillRect(px, py, 2, 2);
+    }
+  }
+
+  const BIOME_PT2 = { forest:'Floresta', desert:'Deserto', mountain:'Montanha',
+                      city:'Cidade', water:'Águas', plains:'Planícies', anomaly:'Anomalia' };
+  const biomesFound = [...new Set(zones.map(z => z.biome))];
+  document.getElementById('wmap-legend').innerHTML =
+    biomesFound.map(b =>
+      `<div class="wmap-litem"><div class="wmap-lcolor" style="background:${BIOME_MAP_CLR[b]||'#1a1510'}"></div>${BIOME_PT2[b]||b}</div>`
+    ).join('') +
+    `<div class="wmap-litem"><div class="wmap-lcolor" style="background:#c9a84c44;border-color:#c9a84c"></div>Você está aqui</div>`;
+
+  document.getElementById('wmap-stats').textContent =
+    `${zones.length} zona${zones.length !== 1 ? 's' : ''} descoberta${zones.length !== 1 ? 's' : ''}  ·  ` +
+    (current ? `Posição atual: [${current.x}, ${current.y}]` : '') +
+    (compactMode ? '  ·  Modo compacto (alto espalhamento de coordenadas)' : '');
+}
+
+function goLogin() {
+  clearSessionState();
+  window.location.href = '/';
+}
+
+// ─── Chat log ────────────────────────────────────────────────────────────
+function chatLine(text, color, cls) {
+  const log = document.getElementById('chat-log');
+  const div = document.createElement('div');
+  div.style.color = color || '#a88a4c';
+  if (cls) div.className = cls;
+  div.textContent = text;
+  log.appendChild(div);
+  // Keep max 80 lines
+  while (log.childElementCount > 80) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+
+// ─── Game loop ────────────────────────────────────────────────────────────
+let lastFrame = 0;
+function loop(ts) {
+  requestAnimationFrame(loop);
+
+  // Fill background
+  const bg = (gameMap && BIOME_COLORS[gameMap.biome]) || '#0a0806';
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (gameState === 'playing' || gameState === 'charCreate') {
+    // Input
+    if (!chatFocused && gameState === 'playing' && ts - lastMoveAt > MOVE_MS) {
+      if (keys['ArrowUp']    || keys['KeyW']) { sendMove('up');    lastMoveAt = ts; }
+      else if (keys['ArrowDown']  || keys['KeyS']) { sendMove('down');  lastMoveAt = ts; }
+      else if (keys['ArrowLeft']  || keys['KeyA']) { sendMove('left');  lastMoveAt = ts; }
+      else if (keys['ArrowRight'] || keys['KeyD']) { sendMove('right'); lastMoveAt = ts; }
+    }
+
+    if (gameState === 'playing') {
+      updateCam();
+      renderMap();
+      renderEntities();
+      renderNightOverlay();
+      renderFloating();
+
+      if (ts - lastFrame > 3000) { updateMinimap(); lastFrame = ts; }
+    }
+  }
+}
+requestAnimationFrame(loop);
+
+// ─── Boot ─────────────────────────────────────────────────────────────────
+async function boot() {
+  if (!token) { window.location.href = '/'; return; }
+
+  try {
+    const session = await loadSessionState();
+    if (session === false) return;
+
+    if (session && !session.hasCharacter) {
+      document.getElementById('ov-create').style.display = 'flex';
+      gameState = 'charCreate';
+      return;
+    }
+
+    const r = await fetch('/api/character', { headers: { Authorization: 'Bearer ' + token } });
+    if (r.status === 401) { clearSessionState(); window.location.href = '/'; return; }
+
+    if (r.ok) {
+      const d = await r.json();
+      charData = d.character;
+      persistSessionState({ ...sessionState, hasCharacter: true });
+      updateHUD();
+      connect();
+      document.getElementById('ov-create').style.display = 'none';
+    } else {
+      persistSessionState({ ...sessionState, hasCharacter: false });
+      document.getElementById('ov-create').style.display = 'flex';
+      gameState = 'charCreate';
+    }
+  } catch {
+    document.getElementById('ov-create').style.display = 'flex';
+    gameState = 'charCreate';
+  }
+}
+
+boot();
+</script>
+</body>
+</html>

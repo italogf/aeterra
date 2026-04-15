@@ -1,0 +1,2602 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aeterra: World Breaker — MMORPG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=Cinzel:wght@400;600;700&family=IM+Fell+English:ital@0;1&display=swap');
+
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #f0d080;
+    --gold-dim: #7a5e2a;
+    --blood: #8b1a1a;
+    --blood-bright: #c0392b;
+    --ink: #0a0806;
+    --parchment: #1a1510;
+    --stone: #2a2420;
+    --ash: #4a4035;
+    --fog: #6a5a4a;
+    --text: #d4c4a0;
+    --text-dim: #8a7a60;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: 'IM Fell English', serif;
+    overflow-x: hidden;
+    cursor: crosshair;
+  }
+
+  /* BACKGROUND ATMOSPHERIC */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 50%, rgba(139,26,26,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 80%, rgba(42,36,32,0.9) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* NOISE TEXTURE */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* HERO SECTION */
+  #hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    overflow: hidden;
+    padding: 2rem;
+  }
+
+  /* ANIMATED MAP BACKGROUND */
+  .map-bg {
+    position: absolute;
+    inset: 0;
+    opacity: 0.07;
+    background-image: 
+      linear-gradient(rgba(201,168,76,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.3) 1px, transparent 1px),
+      radial-gradient(circle at 30% 40%, rgba(201,168,76,0.4) 1px, transparent 1px),
+      radial-gradient(circle at 70% 60%, rgba(201,168,76,0.4) 1px, transparent 1px),
+      radial-gradient(circle at 50% 20%, rgba(201,168,76,0.4) 1px, transparent 1px);
+    background-size: 60px 60px, 60px 60px, 120px 120px, 180px 180px, 90px 90px;
+    animation: mapDrift 40s linear infinite;
+  }
+
+  @keyframes mapDrift {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    100% { transform: translate(-60px, -60px) rotate(0.5deg); }
+  }
+
+  /* ORNAMENTAL CORNERS */
+  .corner {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    opacity: 0.4;
+  }
+  .corner-tl { top: 20px; left: 20px; border-top: 2px solid var(--gold-dim); border-left: 2px solid var(--gold-dim); }
+  .corner-tr { top: 20px; right: 20px; border-top: 2px solid var(--gold-dim); border-right: 2px solid var(--gold-dim); }
+  .corner-bl { bottom: 20px; left: 20px; border-bottom: 2px solid var(--gold-dim); border-left: 2px solid var(--gold-dim); }
+  .corner-br { bottom: 20px; right: 20px; border-bottom: 2px solid var(--gold-dim); border-right: 2px solid var(--gold-dim); }
+
+  .corner::before, .corner::after {
+    content: '◆';
+    position: absolute;
+    color: var(--gold-dim);
+    font-size: 10px;
+  }
+  .corner-tl::before { top: -6px; left: -6px; }
+  .corner-tr::before { top: -6px; right: -6px; }
+  .corner-bl::before { bottom: -6px; left: -6px; }
+  .corner-br::before { bottom: -6px; right: -6px; }
+
+  /* TITLE */
+  .title-eyebrow {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.5em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 1s ease 0.3s forwards;
+  }
+
+  .title-main {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(3rem, 10vw, 7rem);
+    font-weight: 900;
+    color: var(--gold);
+    text-align: center;
+    line-height: 0.9;
+    letter-spacing: 0.05em;
+    text-shadow: 
+      0 0 40px rgba(201,168,76,0.3),
+      0 0 80px rgba(201,168,76,0.1),
+      2px 2px 0 rgba(0,0,0,0.8);
+    opacity: 0;
+    animation: fadeUp 1.2s ease 0.5s forwards;
+    position: relative;
+  }
+
+  .title-main::after {
+    content: 'AETERNITAS';
+    position: absolute;
+    inset: 0;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(201,168,76,0.15);
+    transform: translate(3px, 3px);
+  }
+
+  .title-sub {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(0.7rem, 2vw, 1rem);
+    letter-spacing: 0.35em;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 1rem;
+    margin-bottom: 3rem;
+    opacity: 0;
+    animation: fadeUp 1s ease 0.8s forwards;
+  }
+
+  /* DIVIDER */
+  .divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    width: min(500px, 90vw);
+    opacity: 0;
+    animation: fadeUp 1s ease 1s forwards;
+  }
+  .divider-line { flex: 1; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-dim), transparent); }
+  .divider-gem { color: var(--blood-bright); font-size: 0.6rem; }
+
+  /* CTA BUTTONS */
+  .btn-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    opacity: 0;
+    animation: fadeUp 1s ease 1.2s forwards;
+  }
+
+  .btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.9rem 2.5rem;
+    border: 1px solid;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    text-decoration: none;
+  }
+
+  .btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-110%);
+    transition: transform 0.4s ease;
+  }
+
+  .btn:hover::before { transform: translateX(0); }
+
+  .btn-primary {
+    background: var(--blood);
+    border-color: var(--blood-bright);
+    color: var(--gold-light);
+    box-shadow: 0 0 20px rgba(139,26,26,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn-primary::before { background: var(--blood-bright); }
+  .btn-primary span { position: relative; z-index: 1; }
+  .btn-primary:hover { box-shadow: 0 0 40px rgba(192,57,43,0.6); }
+
+  .btn-secondary {
+    background: transparent;
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+  .btn-secondary::before { background: rgba(201,168,76,0.1); }
+  .btn-secondary span { position: relative; z-index: 1; }
+  .btn-secondary:hover { border-color: var(--gold); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* SCROLL INDICATOR */
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    animation: fadeUp 1s ease 2s forwards;
+  }
+  .scroll-hint span { font-family: 'Cinzel', serif; font-size: 0.6rem; letter-spacing: 0.3em; color: var(--text-dim); }
+  .scroll-line { width: 1px; height: 40px; background: linear-gradient(var(--gold-dim), transparent); animation: scrollPulse 2s ease-in-out infinite; }
+  @keyframes scrollPulse { 0%,100% { opacity: 0.3; transform: scaleY(1); } 50% { opacity: 1; transform: scaleY(1.2); } }
+
+  /* SECTIONS */
+  section {
+    position: relative;
+    z-index: 1;
+    padding: 6rem 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.5em;
+    color: var(--blood-bright);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .section-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    color: var(--gold);
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+
+  .section-body {
+    font-size: 1.05rem;
+    line-height: 1.9;
+    color: var(--text);
+    max-width: 700px;
+  }
+
+  .section-body em { color: var(--gold-light); font-style: italic; }
+
+  /* HORIZONTAL RULE */
+  hr.ornament {
+    border: none;
+    text-align: center;
+    color: var(--gold-dim);
+    font-size: 1rem;
+    margin: 0;
+    line-height: 0;
+  }
+  hr.ornament::before { content: '— ✦ ✦ ✦ —'; letter-spacing: 0.3em; }
+
+  /* SYSTEMS GRID */
+  .systems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5px;
+    margin-top: 4rem;
+    border: 1px solid var(--ash);
+  }
+
+  .system-card {
+    background: var(--parchment);
+    padding: 2.5rem 2rem;
+    border-right: 1px solid var(--ash);
+    border-bottom: 1px solid var(--ash);
+    position: relative;
+    transition: background 0.3s;
+    overflow: hidden;
+  }
+
+  .system-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px;
+    height: 0;
+    background: var(--blood-bright);
+    transition: height 0.4s ease;
+  }
+
+  .system-card:hover { background: var(--stone); }
+  .system-card:hover::before { height: 100%; }
+
+  .card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 1.2rem;
+    display: block;
+    filter: grayscale(0.3);
+  }
+
+  .card-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.9rem;
+    letter-spacing: 0.1em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+  }
+
+  .card-text {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--text-dim);
+  }
+
+  .card-text strong { color: var(--text); }
+
+  /* WORLD DEMO */
+  #world-demo {
+    padding: 6rem 2rem;
+    z-index: 1;
+    position: relative;
+  }
+
+  .demo-container {
+    max-width: 1100px;
+    margin: 3rem auto 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    background: var(--ash);
+    border: 1px solid var(--ash);
+  }
+
+  .demo-panel {
+    background: var(--parchment);
+    padding: 2rem;
+    min-height: 320px;
+  }
+
+  .demo-panel-title {
+    font-family: 'Cinzel', serif;
+    font-size: 0.75rem;
+    letter-spacing: 0.3em;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--ash);
+    padding-bottom: 0.8rem;
+    margin-bottom: 1.5rem;
+  }
+
+  /* MAP VISUALIZATION */
+  .map-vis {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 3px;
+    aspect-ratio: 1;
+    max-width: 280px;
+  }
+
+  .map-cell {
+    aspect-ratio: 1;
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .map-cell.fog { background: var(--ink); border: 1px solid rgba(106,90,74,0.3); }
+  .map-cell.fog:hover { background: rgba(106,90,74,0.3); transform: scale(1.1); }
+  .map-cell.forest { background: #1a3a1a; border: 1px solid #2a5a2a; }
+  .map-cell.mountain { background: #3a3530; border: 1px solid #5a5045; }
+  .map-cell.plains { background: #2a3a1a; border: 1px solid #4a6a2a; }
+  .map-cell.city { background: #3a2a10; border: 1px solid var(--gold-dim); box-shadow: 0 0 6px rgba(201,168,76,0.3); }
+  .map-cell.dungeon { background: #2a0a0a; border: 1px solid var(--blood); }
+  .map-cell.water { background: #0a1a2a; border: 1px solid #1a3a5a; }
+  .map-cell.desert { background: #3a2e14; border: 1px solid #6a5020; }
+  .map-cell.anomaly { background: #1a0a2a; border: 1px solid #5a2090; box-shadow: 0 0 4px rgba(90,32,144,0.4); }
+  .map-cell.player { background: var(--blood); border: 1px solid var(--blood-bright); animation: pulse-red 1.5s infinite; box-shadow: 0 0 8px rgba(192,57,43,0.8); }
+  .map-cell.recently-revealed { animation: reveal 0.6s ease forwards; }
+
+  /* WORLD MAP (macro) */
+  #worldMapSection { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; position: relative; z-index:1; }
+  .world-map-wrap {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 3rem;
+    align-items: start;
+    margin-top: 2rem;
+  }
+  @media(max-width:800px){ .world-map-wrap { grid-template-columns: 1fr; } }
+
+  .world-grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .world-grid {
+    display: grid;
+    gap: 2px;
+    border: 1px solid var(--ash);
+    background: var(--ash);
+    position: relative;
+  }
+
+  .world-cell {
+    aspect-ratio: 1;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    border-radius: 1px;
+  }
+  .world-cell:hover { filter: brightness(1.6); transform: scale(1.05); z-index: 2; }
+  .world-cell.wfog { background: #080604; }
+  .world-cell.wfog:hover { background: #1a1510; }
+  .world-cell.wforest { background: #1a3a1a; }
+  .world-cell.wmountain { background: #3a3530; }
+  .world-cell.wplains { background: #2a3a1a; }
+  .world-cell.wcity { background: #3a2a10; box-shadow: inset 0 0 4px rgba(201,168,76,0.3); }
+  .world-cell.wwater { background: #0a1a2a; }
+  .world-cell.wdesert { background: #3a2e14; }
+  .world-cell.wanomaly { background: #1a0a2a; }
+  .world-cell.wplayer { background: var(--blood); animation: pulse-red 1.5s infinite; }
+  .world-cell.wselected { outline: 2px solid var(--gold); z-index: 3; }
+  .world-cell.wrevealed { animation: reveal 0.4s ease forwards; }
+
+  .world-coords {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-align: center;
+  }
+
+  /* TERRAIN DETAIL PANEL */
+  .terrain-panel {
+    background: var(--parchment);
+    border: 1px solid var(--ash);
+    padding: 2rem;
+    min-height: 420px;
+    position: sticky;
+    top: 2rem;
+  }
+  .terrain-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid var(--ash);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .terrain-icon { font-size: 2.5rem; }
+  .terrain-name {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+  }
+  .terrain-coords-tag {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+  }
+  .terrain-micro-grid {
+    display: grid;
+    gap: 2px;
+    margin: 1rem 0;
+    border: 1px solid var(--ash);
+  }
+  .micro-cell {
+    aspect-ratio: 1;
+    border-radius: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .micro-cell:hover { filter: brightness(1.5); transform: scale(1.08); z-index: 2; }
+  .micro-cell.m-empty { background: #0a0806; }
+  .micro-cell.m-terrain { background: inherit; }
+  .micro-cell.m-dungeon { background: #200505; border: 1px solid var(--blood) !important; }
+  .micro-cell.m-dungeon::after { content: '⚠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.5rem; color: var(--blood); opacity:0.8; }
+  .micro-cell.m-npc { background: #2a2010; border: 1px solid var(--gold-dim) !important; }
+  .micro-cell.m-npc::after { content: '◉'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.5rem; color: var(--gold-dim); }
+  .micro-cell.m-resource { border: 1px solid #4a8a4a !important; }
+  .micro-cell.m-resource::after { content: '◆'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.4rem; color: #4a8a4a; }
+  .micro-cell.m-spawn { background: var(--blood) !important; animation: pulse-red 1.5s infinite; }
+
+  .terrain-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    font-size: 0.8rem;
+  }
+  .t-info-item {
+    background: var(--stone);
+    padding: 0.5rem 0.8rem;
+    border-left: 2px solid var(--gold-dim);
+  }
+  .t-info-label { font-family:'Cinzel',serif; font-size:0.55rem; letter-spacing:0.2em; color:var(--text-dim); text-transform:uppercase; }
+  .t-info-val { color: var(--text); margin-top: 0.2rem; }
+
+  .world-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+  .world-legend .legend-item { display:flex; align-items:center; gap:0.3rem; }
+  .world-legend .legend-dot { width:10px; height:10px; border-radius:1px; flex-shrink:0; }
+
+  /* DEPTH SECTION */
+  .depth-section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 6rem 2rem;
+    position: relative;
+    z-index: 1;
+  }
+  .depth-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: var(--ash);
+    border: 1px solid var(--ash);
+    margin-top: 3rem;
+  }
+  .depth-card {
+    background: var(--parchment);
+    padding: 2rem 1.5rem;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+  }
+  .depth-card:hover { background: var(--stone); border-bottom-color: var(--blood-bright); }
+  .depth-card .card-icon { font-size: 1.5rem; margin-bottom: 0.8rem; display: block; }
+  .depth-card .card-title { font-family:'Cinzel',serif; font-size:0.8rem; letter-spacing:0.1em; color:var(--gold); text-transform:uppercase; margin-bottom:0.6rem; }
+  .depth-card .card-text { font-size:0.85rem; line-height:1.7; color:var(--text-dim); }
+  .depth-card .card-text strong { color:var(--text); }
+
+  /* SCALE COUNTER */
+  .scale-banner {
+    background: var(--stone);
+    border: 1px solid var(--ash);
+    padding: 2.5rem;
+    max-width: 1100px;
+    margin: 0 auto 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1px;
+    background: var(--ash);
+  }
+  .scale-item {
+    background: var(--parchment);
+    padding: 2rem 1.5rem;
+    text-align: center;
+  }
+  .scale-num {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.2rem, 3vw, 1.8rem);
+    color: var(--gold);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .scale-label {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  @keyframes pulse-red {
+    0%,100% { box-shadow: 0 0 4px rgba(192,57,43,0.6); }
+    50% { box-shadow: 0 0 12px rgba(192,57,43,1); }
+  }
+
+  @keyframes reveal {
+    from { opacity: 0; transform: scale(0); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 0.3rem; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 1px; }
+
+  /* CHARACTER CARD */
+  .char-card {
+    border: 1px solid var(--ash);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    transition: border-color 0.3s;
+    cursor: pointer;
+  }
+
+  .char-card:hover { border-color: var(--gold-dim); }
+
+  .char-card::after {
+    content: attr(data-status);
+    position: absolute;
+    top: 0.8rem; right: 0.8rem;
+    font-family: 'Cinzel', serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid;
+  }
+
+  .char-card[data-status="vivo"]::after { color: #4a8a4a; border-color: #4a8a4a; }
+  .char-card[data-status="morto"]::after { color: var(--blood); border-color: var(--blood); opacity: 0.7; }
+
+  .char-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1rem;
+    color: var(--gold);
+    margin-bottom: 0.3rem;
+  }
+
+  .char-dead { opacity: 0.5; text-decoration: line-through; text-decoration-color: var(--blood); }
+
+  .char-info {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .char-info strong { color: var(--text); }
+  .family-link { color: var(--gold-dim); font-style: italic; }
+
+  /* TIMELINE */
+  .timeline {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(var(--blood), var(--gold-dim), transparent);
+  }
+
+  .timeline-event {
+    position: relative;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards;
+  }
+
+  .timeline-event:nth-child(1) { animation-delay: 0.1s; }
+  .timeline-event:nth-child(2) { animation-delay: 0.3s; }
+  .timeline-event:nth-child(3) { animation-delay: 0.5s; }
+  .timeline-event:nth-child(4) { animation-delay: 0.7s; }
+
+  .timeline-event::before {
+    content: '';
+    position: absolute;
+    left: -2.35rem;
+    top: 0.35rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px rgba(201,168,76,0.6);
+  }
+
+  .event-time {
+    font-family: 'Cinzel', serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--blood-bright);
+    text-transform: uppercase;
+    margin-bottom: 0.3rem;
+  }
+
+  .event-text {
+    font-size: 0.88rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .event-text .highlight { color: var(--gold-light); }
+
+  /* HARDCORE SECTION */
+  .hardcore-banner {
+    background: linear-gradient(135deg, var(--blood) 0%, #4a0a0a 100%);
+    border: 1px solid var(--blood-bright);
+    padding: 3rem 2.5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hardcore-banner::before {
+    content: '☠';
+    position: absolute;
+    right: -1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12rem;
+    opacity: 0.05;
+    line-height: 1;
+  }
+
+  .hc-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    color: var(--gold-light);
+    margin-bottom: 1rem;
+  }
+
+  .hc-body {
+    font-size: 1rem;
+    line-height: 1.8;
+    color: rgba(212,196,160,0.85);
+    max-width: 650px;
+  }
+
+  .hc-body strong { color: white; }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 4rem 2rem;
+    border-top: 1px solid var(--ash);
+  }
+
+  .footer-title {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.5rem;
+    color: var(--gold-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-sub {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    font-family: 'Cinzel', serif;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .demo-container { grid-template-columns: 1fr; }
+    .systems-grid { grid-template-columns: 1fr; }
+    .corner { width: 60px; height: 60px; }
+  }
+
+  /* INTERACTIVE MAP */
+  .map-instruction {
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-top: 0.8rem;
+    font-style: italic;
+  }
+
+  /* GENERATE BTN */
+  .gen-btn {
+    font-family: 'Cinzel', serif;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.6rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold);
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 1rem;
+  }
+
+  .gen-btn:hover { background: rgba(201,168,76,0.1); border-color: var(--gold); }
+
+  .tag {
+    display: inline-block;
+    font-family: 'Cinzel', serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.15em;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--gold-dim);
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-right: 0.4rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .tag.red { border-color: var(--blood); color: var(--blood-bright); }
+
+  #gen-output {
+    margin-top: 1rem;
+    font-size: 0.88rem;
+    line-height: 1.7;
+    color: var(--text);
+    min-height: 60px;
+    border-left: 2px solid var(--gold-dim);
+    padding-left: 1rem;
+    font-style: italic;
+  }
+
+  /* === DUNGEON RANKS === */
+  .rank-badge { display:inline-block; font-family:'Cinzel',serif; font-weight:700; font-size:0.65rem; padding:0.15rem 0.55rem; border:1px solid; letter-spacing:0.08em; text-transform:uppercase; }
+  .rank-F  { color:#8a8a7a; border-color:#5a5a4a; }
+  .rank-E  { color:#6aaa6a; border-color:#3a7a3a; }
+  .rank-D  { color:#4a9aaa; border-color:#2a6a7a; }
+  .rank-C  { color:#7a6acc; border-color:#4a4a9a; }
+  .rank-B  { color:#cc9a3a; border-color:#9a6a1a; }
+  .rank-A  { color:#dd4a3a; border-color:#aa2a1a; }
+  .rank-S  { color:#f0d080; border-color:#c9a84c; text-shadow:0 0 8px rgba(201,168,76,0.6); }
+  .rank-SS { color:#f0d080; border-color:#c9a84c; text-shadow:0 0 14px rgba(201,168,76,1); background:rgba(201,168,76,0.07); }
+  .rank-SSS{ color:#fff; border-color:var(--blood-bright); text-shadow:0 0 16px rgba(192,57,43,1),0 0 4px #fff; background:rgba(139,26,26,0.18); animation:rank-pulse 2s infinite; }
+  @keyframes rank-pulse { 0%,100%{box-shadow:0 0 4px rgba(192,57,43,0.3);} 50%{box-shadow:0 0 18px rgba(192,57,43,0.9);} }
+  .dungeon-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:1px; background:var(--ash); border:1px solid var(--ash); margin-top:2rem; }
+  .dungeon-card { background:var(--parchment); padding:1.5rem; transition:background 0.3s; cursor:pointer; border-bottom:2px solid transparent; }
+  .dungeon-card:hover { background:var(--stone); }
+  .dungeon-card .d-rank { margin-bottom:0.6rem; }
+  .dungeon-card .d-name { font-family:'Cinzel',serif; font-size:0.75rem; color:var(--text); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:0.08em; }
+  .dungeon-card .d-info { font-size:0.78rem; color:var(--text-dim); line-height:1.6; }
+  .dungeon-card .d-info strong { color:var(--text); }
+  .dungeon-card .d-first { font-size:0.7rem; color:var(--gold-dim); font-style:italic; margin-top:0.5rem; }
+  .dungeon-card.evolving .d-first { color:var(--blood-bright); }
+  .dungeon-card.evolved-up { border-left:3px solid #4a8a4a; }
+  .dungeon-card.evolved-down { border-left:3px solid var(--blood); }
+  .rank-table { width:100%; border-collapse:collapse; margin-top:2rem; font-size:0.82rem; }
+  .rank-table th { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.15em; text-transform:uppercase; color:var(--text-dim); border-bottom:1px solid var(--ash); padding:0.6rem 1rem; text-align:left; }
+  .rank-table td { padding:0.5rem 1rem; border-bottom:1px solid rgba(74,64,53,0.3); }
+
+  /* === CHARACTER CREATION FLOW === */
+  .creation-flow { max-width:1100px; margin:0 auto; padding:6rem 2rem; position:relative; z-index:1; }
+  .flow-steps { display:flex; gap:0; margin:2.5rem 0; }
+  .flow-step { flex:1; background:var(--parchment); border:1px solid var(--ash); padding:1.5rem 1rem; position:relative; text-align:center; transition:background 0.3s; }
+  .flow-step.active { background:var(--stone); border-color:var(--gold-dim); }
+  .flow-step.locked { opacity:0.45; }
+  .flow-step .step-num { font-family:'Cinzel Decorative',serif; font-size:1.4rem; color:var(--gold-dim); margin-bottom:0.4rem; }
+  .flow-step.active .step-num { color:var(--gold); }
+  .flow-step .step-title { font-family:'Cinzel',serif; font-size:0.65rem; letter-spacing:0.15em; color:var(--text); text-transform:uppercase; margin-bottom:0.3rem; }
+  .flow-step .step-desc { font-size:0.75rem; color:var(--text-dim); line-height:1.5; }
+  .flow-step::after { content:'▶'; position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:var(--gold-dim); font-size:0.7rem; z-index:2; }
+  .flow-step:last-child::after { display:none; }
+  .creation-demo { display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--ash); border:1px solid var(--ash); }
+  .creation-panel { background:var(--parchment); padding:2rem; }
+  .creation-input { background:var(--ink); border:1px solid var(--ash); color:var(--text); font-family:'IM Fell English',serif; font-size:0.9rem; padding:0.6rem 1rem; width:100%; margin-bottom:0.8rem; transition:border-color 0.3s; outline:none; }
+  .creation-input:focus { border-color:var(--gold-dim); }
+  .creation-radio { display:flex; gap:2px; margin-bottom:1rem; }
+  .radio-option { flex:1; background:var(--ink); border:1px solid var(--ash); padding:0.8rem; text-align:center; cursor:pointer; transition:all 0.3s; font-family:'Cinzel',serif; font-size:0.75rem; letter-spacing:0.1em; color:var(--text-dim); }
+  .radio-option.selected { border-color:var(--gold-dim); color:var(--gold); background:rgba(201,168,76,0.05); }
+  .creation-locked { background:var(--ink); border:1px solid rgba(74,64,53,0.4); padding:0.7rem 1rem; margin-bottom:0.6rem; font-size:0.82rem; color:var(--text-dim); display:flex; align-items:center; gap:0.6rem; }
+  .lock-icon { color:var(--blood-bright); }
+  .reveal-box { background:var(--ink); border:1px solid var(--gold-dim); padding:1.5rem; text-align:center; margin-top:1rem; }
+  .reveal-box .reveal-label { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.2em; color:var(--text-dim); text-transform:uppercase; margin-bottom:0.5rem; }
+  .reveal-biome { font-family:'Cinzel Decorative',serif; font-size:1.3rem; color:var(--gold); }
+  .reveal-char { font-size:0.85rem; color:var(--text); line-height:1.7; margin-top:0.6rem; }
+  @media(max-width:700px){ .creation-demo{grid-template-columns:1fr;} .flow-steps{flex-wrap:wrap;} .flow-step::after{display:none;} }
+
+  /* === LOCATION & CHAT === */
+  .location-chat-grid { display:grid; grid-template-columns:1fr 1fr; gap:2px; background:var(--ash); border:1px solid var(--ash); margin-top:2rem; }
+  .location-panel { background:var(--parchment); padding:2rem; }
+  .location-bar { background:var(--ink); border:1px solid var(--ash); padding:0.6rem 1rem; font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.15em; color:var(--text-dim); display:flex; gap:0.4rem; align-items:center; flex-wrap:wrap; margin-bottom:1rem; }
+  .loc-sep { color:var(--ash); }
+  .loc-current { color:var(--gold); }
+  .chat-window { background:var(--ink); border:1px solid var(--ash); height:170px; overflow-y:auto; padding:0.8rem; margin-bottom:0.6rem; }
+  .chat-msg { font-size:0.8rem; line-height:1.7; margin-bottom:0.2rem; }
+  .chat-name { font-family:'Cinzel',serif; font-size:0.68rem; }
+  .chat-name.player-you { color:var(--gold); }
+  .chat-name.player-other { color:#6aaa6a; }
+  .chat-name.npc-name { color:var(--text-dim); font-style:italic; }
+  .chat-name.sys-name { color:var(--blood-bright); }
+  .chat-text { color:rgba(212,196,160,0.75); }
+  .chat-input-row { display:flex; gap:2px; }
+  .chat-input { flex:1; background:var(--ink); border:1px solid var(--ash); color:var(--text); font-family:'IM Fell English',serif; font-size:0.85rem; padding:0.5rem 0.8rem; outline:none; transition:border-color 0.2s; }
+  .chat-input:focus { border-color:var(--gold-dim); }
+  .chat-send { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.1em; padding:0.5rem 1rem; background:var(--stone); border:1px solid var(--ash); color:var(--gold-dim); cursor:pointer; transition:all 0.2s; }
+  .chat-send:hover { border-color:var(--gold-dim); color:var(--gold); }
+  .online-list { margin-top:0.8rem; font-size:0.78rem; color:var(--text-dim); }
+  .online-dot { width:6px; height:6px; border-radius:50%; background:#4a8a4a; display:inline-block; margin-right:4px; box-shadow:0 0 4px #4a8a4a; }
+  .dead-dot { width:6px; height:6px; border-radius:50%; background:var(--blood); display:inline-block; margin-right:4px; }
+  .loc-mini-map { display:grid; gap:2px; margin-top:1rem; border:1px solid var(--ash); background:var(--ash); }
+  .loc-cell { width:18px; height:18px; }
+  @media(max-width:700px){ .location-chat-grid{grid-template-columns:1fr;} }
+
+  /* === WEATHER === */
+  .weather-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:1px; background:var(--ash); border:1px solid var(--ash); margin-top:2rem; }
+  .weather-card { background:var(--parchment); padding:1.5rem; transition:background 0.3s; }
+  .weather-card:hover { background:var(--stone); }
+  .weather-icon-big { font-size:1.8rem; margin-bottom:0.5rem; display:block; }
+  .weather-biome { font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.15em; color:var(--gold-dim); text-transform:uppercase; margin-bottom:0.3rem; }
+  .weather-event-name { font-family:'Cinzel',serif; font-size:0.78rem; color:var(--text); margin-bottom:0.4rem; }
+  .weather-effect { font-size:0.76rem; color:var(--text-dim); line-height:1.5; }
+  .weather-effect strong { color:var(--blood-bright); }
+  .weather-spread { font-size:0.7rem; color:var(--gold-dim); font-style:italic; margin-top:0.3rem; }
+
+  /* === SANDBOX === */
+  .sandbox-section { max-width:1100px; margin:0 auto; padding:6rem 2rem; position:relative; z-index:1; }
+  .sandbox-demo { display:grid; grid-template-columns:auto 1fr; gap:2rem; align-items:start; margin-top:2rem; }
+  .sandbox-map { display:grid; gap:2px; border:1px solid var(--ash); background:var(--ash); }
+  .sandbox-cell { width:26px; height:26px; cursor:pointer; transition:all 0.2s; position:relative; flex-shrink:0; }
+  .sandbox-cell:hover { filter:brightness(1.6); z-index:2; }
+  .s-empty { background:#080604; }
+  .s-terrain { background:#1a3a1a; }
+  .s-road { background:#2a2a1a; border:1px solid #3a3a2a !important; }
+  .s-wall  { background:#3a3530; }
+  .s-house::after   { content:'🏠'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem; }
+  .s-house   { background:#2a1a08; border:1px solid #5a3a10 !important; }
+  .s-shop::after    { content:'🏪'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem; }
+  .s-shop    { background:#1a2a08; border:1px solid #3a6a10 !important; }
+  .s-tavern::after  { content:'🍺'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem; }
+  .s-tavern  { background:#2a1008; border:1px solid #5a2a10 !important; }
+  .s-forge::after   { content:'⚒️'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:0.6rem; }
+  .s-forge   { background:#1a0808; border:1px solid var(--ash) !important; }
+  .sandbox-info { background:var(--parchment); border:1px solid var(--ash); padding:2rem; min-height:280px; }
+  .sandbox-toolbar { display:flex; flex-wrap:wrap; gap:0.4rem; margin-bottom:1.2rem; }
+  .tool-btn { font-family:'Cinzel',serif; font-size:0.55rem; letter-spacing:0.1em; padding:0.3rem 0.7rem; background:var(--stone); border:1px solid var(--ash); color:var(--text-dim); cursor:pointer; transition:all 0.2s; text-transform:uppercase; }
+  .tool-btn:hover,.tool-btn.active { border-color:var(--gold-dim); color:var(--gold); background:rgba(201,168,76,0.05); }
+  .settlement-bar { margin-top:1.2rem; }
+  .settlement-stage { font-family:'Cinzel',serif; font-size:0.65rem; letter-spacing:0.15em; color:var(--gold); text-transform:uppercase; margin-bottom:0.5rem; }
+  .settle-progress { height:5px; background:var(--ash); margin-bottom:0.3rem; }
+  .settle-progress-bar { height:100%; background:linear-gradient(90deg,var(--blood),var(--gold)); transition:width 0.6s ease; }
+  .settle-label { font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.08em; color:var(--text-dim); display:flex; justify-content:space-between; margin-bottom:0.8rem; }
+  @media(max-width:700px){ .sandbox-demo{grid-template-columns:1fr;} }
+
+  /* === GM PANEL === */
+  .gm-section { max-width:1100px; margin:0 auto; padding:0 2rem 6rem; position:relative; z-index:1; }
+  .gm-panel { background:var(--parchment); border:1px solid var(--ash); overflow:hidden; }
+  .gm-topbar { background:#120e0a; border-bottom:1px solid var(--ash); padding:0.8rem 1.5rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+  .gm-title { font-family:'Cinzel',serif; font-size:0.75rem; letter-spacing:0.2em; color:var(--gold); text-transform:uppercase; }
+  .gm-badge { background:var(--blood); border:1px solid var(--blood-bright); font-family:'Cinzel',serif; font-size:0.5rem; letter-spacing:0.1em; color:#fff; padding:0.15rem 0.5rem; text-transform:uppercase; }
+  .gm-live { font-family:'Cinzel',serif; font-size:0.55rem; letter-spacing:0.1em; color:#4a8a4a; margin-left:auto; }
+  .gm-live::before { content:'● '; }
+  .gm-tabs { display:flex; background:#100c08; border-bottom:1px solid var(--ash); }
+  .gm-tab { font-family:'Cinzel',serif; font-size:0.62rem; letter-spacing:0.12em; padding:0.7rem 1.4rem; color:var(--text-dim); cursor:pointer; border-bottom:2px solid transparent; transition:all 0.2s; text-transform:uppercase; }
+  .gm-tab:hover { color:var(--text); }
+  .gm-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+  .gm-content { padding:1.5rem; display:none; }
+  .gm-content.active { display:block; }
+  .gm-stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(155px,1fr)); gap:1px; background:var(--ash); border:1px solid var(--ash); margin-bottom:1.5rem; }
+  .gm-stat { background:var(--stone); padding:1rem 1.2rem; }
+  .gm-stat-num { font-family:'Cinzel Decorative',serif; font-size:1.2rem; color:var(--gold); display:block; }
+  .gm-stat-label { font-family:'Cinzel',serif; font-size:0.52rem; letter-spacing:0.12em; color:var(--text-dim); text-transform:uppercase; }
+  .gm-stat-delta { font-size:0.68rem; color:#4a8a4a; font-family:'Cinzel',serif; }
+  .gm-stat-delta.neg { color:var(--blood-bright); }
+  .gm-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+  .gm-table th { font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dim); border-bottom:1px solid var(--ash); padding:0.5rem 0.8rem; text-align:left; }
+  .gm-table td { padding:0.5rem 0.8rem; border-bottom:1px solid rgba(74,64,53,0.3); color:var(--text); vertical-align:middle; }
+  .gm-table tr:hover td { background:rgba(255,255,255,0.02); }
+  .gm-action-btn { font-family:'Cinzel',serif; font-size:0.52rem; letter-spacing:0.05em; padding:0.2rem 0.6rem; background:transparent; border:1px solid var(--ash); color:var(--text-dim); cursor:pointer; text-transform:uppercase; transition:all 0.2s; }
+  .gm-action-btn:hover { border-color:var(--blood); color:var(--blood-bright); }
+  .gm-action-btn.safe:hover { border-color:#4a8a4a; color:#4a8a4a; }
+  .gm-log { background:var(--ink); border:1px solid var(--ash); height:190px; overflow-y:auto; padding:0.8rem; font-size:0.75rem; color:var(--text-dim); line-height:1.9; font-family:'Courier New',monospace; }
+  .log-time { color:var(--gold-dim); }
+  .log-warn { color:var(--blood-bright); }
+  .log-ok { color:#4a8a4a; }
+  .log-info { color:#4a9aaa; }
+  .gm-input-row { display:flex; gap:2px; margin-top:0.5rem; }
+  .gm-cmd-input { flex:1; background:var(--ink); border:1px solid var(--ash); color:var(--gold); font-family:'Courier New',monospace; font-size:0.8rem; padding:0.5rem 0.8rem; outline:none; }
+  .gm-cmd-input:focus { border-color:var(--gold-dim); }
+  .gm-cmd-run { font-family:'Cinzel',serif; font-size:0.6rem; letter-spacing:0.1em; padding:0.5rem 1rem; background:var(--stone); border:1px solid var(--ash); color:var(--gold-dim); cursor:pointer; transition:all 0.2s; }
+  .gm-cmd-run:hover { border-color:var(--gold); color:var(--gold); }
+
+  /* === ROADMAP === */
+  .roadmap-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:1.5px; background:var(--ash); border:1px solid var(--ash); margin-top:2rem; }
+  .phase-card { background:var(--parchment); padding:2rem; border-top:3px solid var(--ash); }
+  .phase-card.p0 { border-top-color:var(--gold); }
+  .phase-card.p1 { border-top-color:#4a9aaa; }
+  .phase-card.p2 { border-top-color:#7a6acc; }
+  .phase-card.p3 { border-top-color:#cc9a3a; }
+  .phase-card.p4 { border-top-color:var(--blood-bright); }
+  .phase-label { font-family:'Cinzel',serif; font-size:0.58rem; letter-spacing:0.25em; text-transform:uppercase; margin-bottom:0.4rem; }
+  .p0 .phase-label { color:var(--gold); }
+  .p1 .phase-label { color:#4a9aaa; }
+  .p2 .phase-label { color:#7a6acc; }
+  .p3 .phase-label { color:#cc9a3a; }
+  .p4 .phase-label { color:var(--blood-bright); }
+  .phase-title { font-family:'Cinzel Decorative',serif; font-size:0.9rem; color:var(--gold); margin-bottom:1rem; }
+  .phase-items { list-style:none; }
+  .phase-items li { font-size:0.8rem; color:var(--text-dim); line-height:1.6; padding:0.25rem 0; border-bottom:1px solid rgba(74,64,53,0.2); display:flex; gap:0.5rem; align-items:flex-start; }
+  .phase-items li::before { content:'◆'; color:var(--ash); font-size:0.45rem; flex-shrink:0; margin-top:0.35rem; }
+  .phase-items li.done { color:var(--text); }
+  .phase-items li.done::before { color:var(--gold-dim); }
+  .pill { display:inline-block; font-family:'Cinzel',serif; font-size:0.48rem; letter-spacing:0.08em; padding:0.1rem 0.4rem; border:1px solid; text-transform:uppercase; margin-left:auto; flex-shrink:0; }
+  .pill-done  { border-color:#4a8a4a; color:#4a8a4a; }
+  .pill-wip   { border-color:var(--gold-dim); color:var(--gold-dim); }
+  .pill-next  { border-color:#4a9aaa; color:#4a9aaa; }
+  .pill-plan  { border-color:var(--ash); color:var(--text-dim); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div id="hero">
+  <div class="map-bg"></div>
+  <div class="corner corner-tl"></div>
+  <div class="corner corner-tr"></div>
+  <div class="corner corner-bl"></div>
+  <div class="corner corner-br"></div>
+
+  <p class="title-eyebrow">Um mundo que nasce ao ser descoberto</p>
+  <h1 class="title-main">AETERNITAS</h1>
+  <p class="title-sub">MMORPG · Hardcore · Procedural · Narrativo</p>
+
+  <div class="divider">
+    <div class="divider-line"></div>
+    <span class="divider-gem">◆</span>
+    <div class="divider-line"></div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="scrollToSystems()"><span>Explorar Sistemas</span></button>
+    <button class="btn btn-secondary" onclick="scrollToDemo()"><span>Ver Demo</span></button>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Descer</span>
+    <div class="scroll-line"></div>
+  </div>
+</div>
+
+<!-- LORE INTRO -->
+<section>
+  <p class="section-label">O Conceito</p>
+  <h2 class="section-title">Um mundo que respira.<br>Uma história que nunca termina.</h2>
+  <p class="section-body">
+    Em Aeternitas, o mundo <em>não existia antes de você</em>. Cada região descoberta é gerada no momento em que os olhos de um explorador a tocam pela primeira vez — montanhas, cidades, civilizações, segredos e tragédias surgem do nada e passam a existir para sempre.<br><br>
+    Sua personagem nasceu com uma história. Uma família. Talvez um irmão desaparecido, um pai morto, uma dívida de sangue. E em algum lugar do mundo, outro jogador acabou de criar uma personagem que <em>é esse irmão</em>.
+  </p>
+</section>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- SYSTEMS -->
+<section id="systems">
+  <p class="section-label">Os Pilares</p>
+  <h2 class="section-title">Sistemas que definem<br>o mundo vivo</h2>
+
+  <div class="systems-grid">
+    <div class="system-card">
+      <span class="card-icon">🗺️</span>
+      <div class="card-title">Mundo em Dois Níveis</div>
+      <p class="card-text">O mapa-mundo tem <strong>~1 bilhão de células</strong> (31.623×31.623). Cada célula é um mapa completo: ao explorar uma célula do mundo, você entra num mapa interno detalhado com NPCs, missões, recursos e dungeons.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">🧬</span>
+      <div class="card-title">Identidade Procedural</div>
+      <p class="card-text">Ao criar uma personagem, o sistema gera <strong>origem, profissão, traços, família e história</strong>. Parte dessa família fica como "slots abertos" — prontos para serem preenchidos por outros jogadores que criem personagens compatíveis.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">🩸</span>
+      <div class="card-title">Hardcore & Legado</div>
+      <p class="card-text">Morte é permanente. Mas personagens mortos <strong>entram na crônica do mundo</strong> como NPCs, lendas ou ancestrais. Filhos podem ser criados como novas personagens, herdando consequências e traços da geração anterior.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">🕸️</span>
+      <div class="card-title">Teia Familiar Viva</div>
+      <p class="card-text">Quando você cria um ferreiro com um irmão desaparecido, esse slot entra num <strong>pool global</strong>. Outro jogador pode criar sua personagem e o sistema a insere como esse irmão — com memórias, contexto e missões compartilhadas.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">📜</span>
+      <div class="card-title">Crônica do Mundo</div>
+      <p class="card-text">Guerras, mortes, alianças e conquistas ficam <strong>registradas permanentemente</strong> na história do mundo. Civilizações lembram. NPCs contam histórias de heróis mortos. O passado não desaparece — ele vira lenda.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">⚔️</span>
+      <div class="card-title">Liberdade Total de Escolha</div>
+      <p class="card-text">Sem classes fixas. <strong>Você define quem é pelo que faz</strong>. Um ferreiro pode se tornar um guerreiro lendário. Um nobre pode trair seu reino. Cada escolha tem peso real porque cada consequência é permanente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- WORLD SCALE BANNER -->
+<div style="padding: 0 2rem; position:relative; z-index:1; margin-bottom:0;">
+  <div class="scale-banner">
+    <div class="scale-item">
+      <span class="scale-num">~1 Bilhão</span>
+      <span class="scale-label">Células no Mapa-Mundo</span>
+    </div>
+    <div class="scale-item">
+      <span class="scale-num">31.623 × 31.623</span>
+      <span class="scale-label">Dimensão da Matriz</span>
+    </div>
+    <div class="scale-item">
+      <span class="scale-num">7 Biomas</span>
+      <span class="scale-label">Tipos de Terreno Únicos</span>
+    </div>
+    <div class="scale-item">
+      <span class="scale-num">~2 Bilhões</span>
+      <span class="scale-label">Dungeons Únicas Geráveis</span>
+    </div>
+    <div class="scale-item">
+      <span class="scale-num">~13,7 Anos</span>
+      <span class="scale-label">Para explorar tudo com 200M jogadores</span>
+    </div>
+  </div>
+</div>
+
+<!-- WORLD MAP DEMO (dois níveis) -->
+<section id="worldMapSection">
+  <p class="section-label">Demo Interativo</p>
+  <h2 class="section-title">Mapa-Mundo × Mapa de Terreno<br>Dois níveis de profundidade</h2>
+  <p class="section-body" style="margin-bottom:0; font-size:0.92rem;">
+    Cada quadrado no mapa-mundo é um <em>bioma inteiro</em>. Clique para explorar uma célula e ver o mapa interno gerado — com dungeons, NPCs, recursos e missões. Biomas têm <em>afinidade entre si</em>: florestas se agrupam, desertos se expandem, cidades nascem perto de água.
+  </p>
+
+  <div class="world-map-wrap">
+    <!-- MAPA MACRO -->
+    <div class="world-grid-container">
+      <div class="world-grid" id="worldGrid" style="grid-template-columns: repeat(20, 22px);"></div>
+      <p class="map-instruction">◆ Clique em qualquer célula para explorar o terreno</p>
+      <div class="world-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#1a3a1a"></div> Floresta</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a2e14"></div> Deserto</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a3530"></div> Montanha</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3a2a10;border:1px solid #7a5e2a"></div> Cidade</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#0a1a2a"></div> Água</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#2a3a1a"></div> Planície</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1a0a2a;border:1px solid #5a2090"></div> Anomalia</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#080604"></div> Névoa</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blood)"></div> Jogador</div>
+      </div>
+    </div>
+
+    <!-- PAINEL DE TERRENO -->
+    <div class="terrain-panel" id="terrainPanel">
+      <div class="terrain-panel-header">
+        <span class="terrain-icon" id="terrainIcon">🌫️</span>
+        <div>
+          <div class="terrain-name" id="terrainName">Aguardando Exploração</div>
+          <div class="terrain-coords-tag" id="terrainCoords">— Clique em uma célula do mapa-mundo —</div>
+        </div>
+      </div>
+      <div id="terrainMicroGrid"></div>
+      <div id="terrainInfoGrid"></div>
+      <div id="terrainDesc" style="font-size:0.85rem;line-height:1.7;color:var(--text-dim);margin-top:1rem;border-left:2px solid var(--gold-dim);padding-left:1rem;font-style:italic;">
+        Explore o mapa-mundo clicando em uma célula para revelar e entrar no mapa interno daquele terreno.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROFUNDIDADE DO MUNDO -->
+<div class="depth-section">
+  <p class="section-label">Profundidade do Mundo</p>
+  <h2 class="section-title">Do mapa-mundo ao chão<br>da dungeon mais profunda</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Cada célula do mapa-mundo esconde um universo inteiro. Um mapa de floresta tem suas próprias trilhas, clareiras, criaturas e segredos. Dentro dele há dungeons. Dentro das dungeons há andares. Cada camada é mais perigosa — e mais recompensadora.
+  </p>
+  <div class="depth-grid">
+    <div class="depth-card">
+      <span class="card-icon">🌲</span>
+      <div class="card-title">Floresta</div>
+      <p class="card-text">Trilhas ocultas, acampamentos de criaturas, rituais druídicos. Criaturas: lobos ancestrais, espíritos da mata, caçadores corrompidos. Dungeons: <strong>cavernas cobertas por raízes</strong>, altares esquecidos, ruínas élficas.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">🏜️</span>
+      <div class="card-title">Deserto</div>
+      <p class="card-text">Dunas que mudam, oásis temporários, tempestades de areia. Criaturas: bestas do calor, construtos de areia, mercenários desertos. Dungeons: <strong>tumbas ancestrais soterradas</strong>, labirintos de cristal, cidades extintas.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">⛰️</span>
+      <div class="card-title">Montanha</div>
+      <p class="card-text">Picos intransponíveis, minas naturais, tempestades. Criaturas: gigantes de pedra, grifos, tribos selvagens. Dungeons: <strong>minas abandonadas</strong>, fortalezas antigas, covis de dragões adormecidos.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">🏛️</span>
+      <div class="card-title">Cidade</div>
+      <p class="card-text">Política, facções, mercado, intrigas. Criaturas: criminosos, guardas corruptos, demônios urbanos. Dungeons: <strong>esgotos labirínticos</strong>, catacumbas nobres, prisões secretas do governo.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">🌊</span>
+      <div class="card-title">Água</div>
+      <p class="card-text">Rios com corredeiras, lagos profundos, oceanos. Criaturas: krakens jovens, piratas malditos, sereias. Dungeons: <strong>templos afundados</strong>, cascos de navios mágicos, cidades subaquáticas extintas.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">🌾</span>
+      <div class="card-title">Planície</div>
+      <p class="card-text">Campos estratégicos, aldeias nômades, batalhas campais. Criaturas: cavaleiros malditos, bandos de salteadores, bestas das planícies. Dungeons: <strong>cemitérios de guerra</strong>, templos enterrados, grutas antigas.</p>
+    </div>
+    <div class="depth-card">
+      <span class="card-icon">✦</span>
+      <div class="card-title">Anomalia</div>
+      <p class="card-text">Leis físicas alteradas, tempo suspenso, realidade fraturada. Criaturas: entidades sem forma, ecos de civilizações extintas, abominações dimensionais. Dungeons: <strong>fracturas no espaço</strong>, torres invertidas, prisões atemporais.</p>
+    </div>
+    <div class="depth-card" style="border-bottom-color: var(--blood-bright);">
+      <span class="card-icon">⚠️</span>
+      <div class="card-title">Dungeons</div>
+      <p class="card-text">Cada dungeon tem layout único, <strong>chefe com história gerada</strong>, 0-3 segredos, loot procedural. O primeiro grupo a limpar uma dungeon entra na Crônica. Monstros retornam mas secretos permanecem.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PERSONAGENS -->
+<div style="max-width:1100px;margin:0 auto;padding:0 2rem 6rem; position:relative; z-index:1;">
+  <p class="section-label">Teia Familiar Viva</p>
+  <h2 class="section-title" style="margin-bottom:2rem;">Personagens com história,<br>família e consequências</h2>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;background:var(--ash);border:1px solid var(--ash);">
+    <div style="background:var(--parchment);padding:2rem;">
+      <div class="demo-panel-title">◆ Personagens Ativos</div>
+
+      <div class="char-card" data-status="vivo">
+        <div class="char-name">Aldric, o Ferreiro</div>
+        <div class="char-info">
+          <strong>Jogador:</strong> VoidWalker_BR<br>
+          <strong>Bioma Natal:</strong> Montanha · Forja de Thornmere<br>
+          <strong>Traços:</strong> Teimoso, Leal, Habilidoso<br>
+          <span class="family-link">⟶ Irmão desaparecido há 3 anos · slot aberto</span>
+        </div>
+      </div>
+
+      <div class="char-card" data-status="vivo">
+        <div class="char-name">Kael, o Andarilho</div>
+        <div class="char-info">
+          <strong>Jogador:</strong> NightFox_42<br>
+          <strong>Bioma Natal:</strong> Planície · errante entre biomas<br>
+          <strong>Traços:</strong> Impulsivo, Curioso, Sombrio<br>
+          <span class="family-link" style="color:var(--gold);">⟶ Sistema: Inserido como irmão de Aldric</span>
+        </div>
+      </div>
+
+      <div class="char-card" data-status="morto">
+        <div class="char-name char-dead">Mira, a Curandeira</div>
+        <div class="char-info">
+          <strong>Jogador:</strong> StarBreaker<br>
+          <strong>Morte:</strong> Batalha de Stonegate, Dia 47<br>
+          <span class="family-link" style="color:var(--blood);">⟶ Agora NPC lendário · mãe de futura personagem</span>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--parchment);padding:2rem;">
+      <div class="demo-panel-title">◆ Gerar Personagem</div>
+      <button class="gen-btn" onclick="generateChar()">⚄ Gerar Nova Personagem</button>
+      <div id="gen-output" style="margin-top:1rem;font-size:0.88rem;line-height:1.7;color:var(--text);min-height:60px;border-left:2px solid var(--gold-dim);padding-left:1rem;font-style:italic;"></div>
+    </div>
+  </div>
+</div>
+
+
+  <p class="section-label">Crônica do Mundo</p>
+  <h2 class="section-title">O que já aconteceu<br>nunca se apaga</h2>
+
+  <div class="timeline">
+    <div class="timeline-event">
+      <div class="event-time">Dia 1 · Primeiro Despertar</div>
+      <p class="event-text"><span class="highlight">VoidWalker_BR</span> surge em Thornmere. O servidor gera pela primeira vez: uma vila de 200 habitantes, uma forja, três segredos enterrados e uma guerra antiga esquecida.</p>
+    </div>
+    <div class="timeline-event">
+      <div class="event-time">Dia 12 · O Irmão Perdido</div>
+      <p class="event-text"><span class="highlight">NightFox_42</span> cria Kael. O sistema detecta o slot familiar de Aldric e os conecta. Os dois jogadores recebem uma missão compartilhada sem se conhecerem ainda.</p>
+    </div>
+    <div class="timeline-event">
+      <div class="event-time">Dia 47 · A Batalha de Stonegate</div>
+      <p class="event-text"><span class="highlight">Mira</span> morre defendendo a cidade. Sua morte é gravada na Crônica. NPCs passam a contar sua história. Um memorial é construído. <span class="highlight">StarBreaker</span> perde sua personagem para sempre.</p>
+    </div>
+    <div class="timeline-event">
+      <div class="event-time">Dia 48 · O Legado Continua</div>
+      <p class="event-text"><span class="highlight">StarBreaker</span> cria uma nova personagem. O sistema oferece: ser <em>filha de Mira</em>, herdando sua reputação, seus inimigos e a dívida de sangue da batalha.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HARDCORE SECTION -->
+<div style="padding: 0 2rem; position:relative; z-index:1;">
+  <div class="hardcore-banner">
+    <h2 class="hc-title">☠ Hardcore não é punição.<br>É o peso da existência.</h2>
+    <p class="hc-body">
+      Em Aeternitas, cada personagem tem <strong>uma única vida</strong>. Quando ela acaba, a história dessa pessoa se torna parte permanente do mundo.<br><br>
+      Após a morte, a conta fica <strong>bloqueada por 24 horas reais</strong> antes de criar nova personagem. Esse intervalo não é cruel — é o luto do mundo. Outros jogadores verão seu personagem morto se tornar NPC, lenda, ou ancestral. Você retorna como alguém novo que carrega o peso do que foi perdido.
+    </p>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- CRIAÇÃO DE PERSONAGEM          -->
+<!-- ============================== -->
+<div class="creation-flow">
+  <p class="section-label">Criação de Personagem</p>
+  <h2 class="section-title">Você escolhe quem é.<br>O mundo decide o que você se torna.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Ao criar uma personagem, você escolhe apenas <em>nome</em> e <em>gênero</em>. O servidor então lança você em um mapa aleatório do mundo — e é esse mapa que define tudo o mais: sua profissão, seus traços, suas memórias, sua família e sua língua natal. O sobrenome é gerado automaticamente pela civilização do mapa, pois é ele que ancora você na teia familiar do mundo.
+  </p>
+
+  <div class="flow-steps">
+    <div class="flow-step active">
+      <div class="step-num">I</div>
+      <div class="step-title">Nome & Gênero</div>
+      <p class="step-desc">Única escolha livre. O sobrenome é atribuído pela civilização do mapa.</p>
+    </div>
+    <div class="flow-step">
+      <div class="step-num">II</div>
+      <div class="step-title">Spawn Aleatório</div>
+      <p class="step-desc">O servidor sorteia um mapa no mundo. Você não sabe o bioma com antecedência.</p>
+    </div>
+    <div class="flow-step locked">
+      <div class="step-num">III</div>
+      <div class="step-title">Revelação</div>
+      <p class="step-desc">O mapa é revelado. Sua profissão, traços, família e língua emergem do bioma.</p>
+    </div>
+    <div class="flow-step locked">
+      <div class="step-num">IV</div>
+      <div class="step-title">Família Conectada</div>
+      <p class="step-desc">O sistema verifica o pool global e conecta slots familiares compatíveis.</p>
+    </div>
+    <div class="flow-step locked">
+      <div class="step-num">V</div>
+      <div class="step-title">Início da Jornada</div>
+      <p class="step-desc">Você acorda no mapa. Sua história começa agora — e é permanente.</p>
+    </div>
+  </div>
+
+  <div class="creation-demo">
+    <div class="creation-panel">
+      <div class="demo-panel-title">◆ O que você pode escolher</div>
+      <label style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.15em;color:var(--text-dim);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Nome</label>
+      <input class="creation-input" id="charNameInput" type="text" placeholder="Digite o nome da personagem..." maxlength="24">
+      <label style="font-family:'Cinzel',serif;font-size:0.65rem;letter-spacing:0.15em;color:var(--text-dim);text-transform:uppercase;display:block;margin-bottom:0.4rem;">Gênero</label>
+      <div class="creation-radio">
+        <div class="radio-option selected" id="genderM" onclick="selectGender('M')">♂ Masculino</div>
+        <div class="radio-option" id="genderF" onclick="selectGender('F')">♀ Feminino</div>
+        <div class="radio-option" id="genderN" onclick="selectGender('N')">◈ Neutro</div>
+      </div>
+      <div class="demo-panel-title" style="margin-top:1rem;">◆ Gerado automaticamente</div>
+      <div class="creation-locked"><span class="lock-icon">🔒</span> <span>Sobrenome — determinado pela civilização do mapa natal</span></div>
+      <div class="creation-locked"><span class="lock-icon">🔒</span> <span>Profissão — determinada pelo bioma natal</span></div>
+      <div class="creation-locked"><span class="lock-icon">🔒</span> <span>Traços de personalidade — 3 a 5, por bioma</span></div>
+      <div class="creation-locked"><span class="lock-icon">🔒</span> <span>Família & Slots — pool global de relações</span></div>
+      <div class="creation-locked"><span class="lock-icon">🔒</span> <span>Língua natal — da civilização local</span></div>
+      <button class="gen-btn" style="margin-top:1rem;width:100%;" onclick="revealCharacter()">⚀ Lançar no Mundo</button>
+    </div>
+    <div class="creation-panel">
+      <div class="demo-panel-title">◆ Revelação do Destino</div>
+      <div class="reveal-box" id="revealBox">
+        <div class="reveal-label">Aguardando criação...</div>
+        <div class="reveal-biome" id="revealBiome">—</div>
+        <div class="reveal-char" id="revealChar" style="color:var(--text-dim);font-style:italic;">O servidor ainda não revelou seu destino. Insira um nome e clique em "Lançar no Mundo".</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- DUNGEONS & RANKS               -->
+<!-- ============================== -->
+<section id="dungeon-section">
+  <p class="section-label">Sistema de Dungeons</p>
+  <h2 class="section-title">Cada dungeon é um mundo.<br>Ranks F a SSS definem o perigo.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Dungeons são mapas procedurais independentes dentro dos terrenos. O <em>primeiro grupo a concluir</em> uma dungeon ganha o direito de nomeá-la — e recebe recompensas únicas do primeiro desbravamento. Dungeons podem <em>evoluir</em>: ficam mais fortes ou mais fracas com o tempo, alterando rank e recompensas.
+  </p>
+
+  <table class="rank-table">
+    <tr>
+      <th>Rank</th><th>Frequência</th><th>Dificuldade</th><th>Recompensa Base</th><th>Evolução</th>
+    </tr>
+    <tr><td><span class="rank-badge rank-F">F</span></td><td style="color:var(--text-dim);">Muito Comum</td><td style="color:var(--text-dim);">Iniciante</td><td style="color:var(--text-dim);">Itens comuns, XP baixo</td><td style="color:var(--text-dim);">Pode subir para E</td></tr>
+    <tr><td><span class="rank-badge rank-E">E</span></td><td style="color:var(--text-dim);">Comum</td><td style="color:var(--text-dim);">Fácil</td><td style="color:var(--text-dim);">Equipamentos básicos</td><td style="color:var(--text-dim);">F↔E</td></tr>
+    <tr><td><span class="rank-badge rank-D">D</span></td><td style="color:var(--text-dim);">Moderada</td><td style="color:var(--text-dim);">Médio</td><td style="color:var(--text-dim);">Itens raros ocasionais</td><td style="color:var(--text-dim);">E↔D↔C</td></tr>
+    <tr><td><span class="rank-badge rank-C">C</span></td><td style="color:var(--text-dim);">Incomum</td><td style="color:var(--text-dim);">Desafiador</td><td style="color:var(--text-dim);">Itens raros, runestones</td><td style="color:var(--text-dim);">D↔C↔B</td></tr>
+    <tr><td><span class="rank-badge rank-B">B</span></td><td style="color:var(--text-dim);">Rara</td><td style="color:var(--text-dim);">Difícil</td><td style="color:var(--text-dim);">Equipamentos épicos</td><td style="color:var(--text-dim);">C↔B↔A</td></tr>
+    <tr><td><span class="rank-badge rank-A">A</span></td><td style="color:var(--text-dim);">Muito Rara</td><td style="color:var(--text-dim);">Muito Difícil</td><td style="color:var(--text-dim);">Itens lendários</td><td style="color:var(--text-dim);">B↔A↔S</td></tr>
+    <tr><td><span class="rank-badge rank-S">S</span></td><td style="color:var(--text-dim);">Extremamente Rara</td><td style="color:var(--text-dim);">Extremo</td><td style="color:var(--text-dim);">Artefatos únicos no mundo</td><td style="color:var(--text-dim);">A↔S↔SS</td></tr>
+    <tr><td><span class="rank-badge rank-SS">SS</span></td><td style="color:var(--text-dim);">Quase Única</td><td style="color:var(--text-dim);">Letal</td><td style="color:var(--text-dim);">Recompensas que alteram o mundo</td><td style="color:var(--text-dim);">S↔SS↔SSS</td></tr>
+    <tr><td><span class="rank-badge rank-SSS">SSS</span></td><td style="color:var(--text-dim);">~1 por bioma</td><td style="color:var(--text-dim);">Calamidade</td><td style="color:var(--text-dim);">Único na história do servidor</td><td style="color:var(--text-dim);">Irreversível</td></tr>
+  </table>
+
+  <div style="margin-top:2rem;display:flex;gap:0.8rem;flex-wrap:wrap;align-items:center;">
+    <button class="gen-btn" onclick="generateDungeon()">⚔ Gerar Dungeon Aleatória</button>
+    <span style="font-family:'Cinzel',serif;font-size:0.62rem;color:var(--text-dim);letter-spacing:0.1em;">← clique para simular geração procedural</span>
+  </div>
+  <div id="dungeon-output" style="margin-top:1rem;"></div>
+
+  <div class="dungeon-grid" id="dungeonGrid">
+    <!-- preenchido pelo JS -->
+  </div>
+</section>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- LOCALIZAÇÃO & CHAT LOCAL       -->
+<!-- ============================== -->
+<section>
+  <p class="section-label">Localização & Chat</p>
+  <h2 class="section-title">Você existe em um lugar.<br>Só fala com quem está lá.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    A localização é um endereço de três níveis: <em>mundo → mapa → posição</em>. O chat é <em>estritamente local</em> — só jogadores no mesmo mapa podem se comunicar em tempo real. Para enviar mensagens entre mapas, use pombos-correio ou Herald NPCs (com delay e custo). Isso torna cada mapa um ambiente social único.
+  </p>
+
+  <div class="location-chat-grid">
+    <div class="location-panel">
+      <div class="demo-panel-title">◆ Localização Atual</div>
+      <div class="location-bar">
+        <span>Mundo</span><span class="loc-sep">›</span>
+        <span class="loc-current" id="locWorld">Região [9,10]</span>
+        <span class="loc-sep">›</span>
+        <span>Mapa</span><span class="loc-sep">›</span>
+        <span class="loc-current" id="locMap">Floresta de Valdris</span>
+        <span class="loc-sep">›</span>
+        <span>Pos</span><span class="loc-sep">›</span>
+        <span class="loc-current" id="locPos">[7, 4]</span>
+      </div>
+      <div class="loc-mini-map" id="locMiniMap" style="grid-template-columns:repeat(10,18px);"></div>
+      <div class="online-list" id="onlineList" style="margin-top:1rem;">
+        <div style="font-family:'Cinzel',serif;font-size:0.6rem;letter-spacing:0.15em;color:var(--text-dim);text-transform:uppercase;margin-bottom:0.5rem;">Neste mapa agora</div>
+      </div>
+    </div>
+    <div class="location-panel">
+      <div class="demo-panel-title">◆ Chat Local — Floresta de Valdris</div>
+      <div class="chat-window" id="chatWindow"></div>
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Falar com jogadores próximos..." maxlength="120" onkeydown="if(event.key==='Enter')sendChat()">
+        <button class="chat-send" onclick="sendChat()">Enviar</button>
+      </div>
+      <p style="font-family:'Cinzel',serif;font-size:0.58rem;color:var(--text-dim);letter-spacing:0.1em;margin-top:0.5rem;font-style:italic;">◆ Apenas jogadores neste mapa recebem estas mensagens</p>
+    </div>
+  </div>
+</section>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- CLIMA & ECOSSISTEMA            -->
+<!-- ============================== -->
+<section>
+  <p class="section-label">Clima & Ecossistema</p>
+  <h2 class="section-title">O mundo respira.<br>O clima espalha e transforma.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Cada mapa tem eventos climáticos procedurais baseados no bioma e nos biomas vizinhos. Uma tempestade de areia do deserto pode atingir a planície adjacente. Uma nevasca de montanha desce e congela a floresta próxima. Eventos climáticos afetam combate, coleta, navegação e até a política local.
+  </p>
+  <div class="weather-grid" id="weatherGrid">
+    <!-- preenchido pelo JS -->
+  </div>
+  <div style="margin-top:1.5rem;display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap;">
+    <button class="gen-btn" onclick="rerollWeather()">🌀 Gerar Novos Eventos Climáticos</button>
+    <span style="font-family:'Cinzel',serif;font-size:0.62rem;color:var(--text-dim);letter-spacing:0.1em;">← simula o ciclo climático do servidor</span>
+  </div>
+</section>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- SANDBOX & ASSENTAMENTOS        -->
+<!-- ============================== -->
+<div class="sandbox-section">
+  <p class="section-label">Sandbox & Assentamentos</p>
+  <h2 class="section-title">Construa. Comercialize.<br>Transforme o mapa em um reino.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Com progresso suficiente, jogadores podem <em>reivindicar um mapa</em> e construir nele. Casas, lojas, tavernas e forjas atraem outros jogadores e NPCs. Conforme o assentamento cresce, o mapa evolui — de acampamento a vilarejo, a cidade, a reino. O bioma do mapa nunca muda, mas o que está <em>sobre</em> ele pode.
+  </p>
+  <div class="sandbox-demo">
+    <div>
+      <div class="demo-panel-title" style="margin-bottom:0.8rem;">◆ Mapa Sandbox — Floresta de Valdris</div>
+      <div class="sandbox-map" id="sandboxMap" style="grid-template-columns:repeat(12,26px);"></div>
+    </div>
+    <div class="sandbox-info">
+      <div class="demo-panel-title">◆ Construção</div>
+      <div class="sandbox-toolbar" id="sandboxTools">
+        <button class="tool-btn active" data-tool="s-house">🏠 Casa</button>
+        <button class="tool-btn" data-tool="s-shop">🏪 Loja</button>
+        <button class="tool-btn" data-tool="s-tavern">🍺 Taverna</button>
+        <button class="tool-btn" data-tool="s-forge">⚒️ Forja</button>
+        <button class="tool-btn" data-tool="s-road">— Estrada</button>
+        <button class="tool-btn" data-tool="s-wall">▪ Muro</button>
+        <button class="tool-btn" data-tool="s-empty" style="border-color:var(--blood);color:var(--blood-bright);">✕ Demolir</button>
+      </div>
+      <div class="settlement-bar" id="settlementBar">
+        <div class="settlement-stage" id="settleStageName">Acampamento</div>
+        <div class="settle-progress"><div class="settle-progress-bar" id="settleBar" style="width:5%;"></div></div>
+        <div class="settle-label"><span id="settleInfo">0 / 4 construções para Vilarejo</span><span id="settleNext">Próximo: Vilarejo</span></div>
+        <div style="margin-top:1rem;font-size:0.82rem;color:var(--text-dim);line-height:1.7;" id="sandboxDesc">
+          Clique nas células do mapa para construir. Cada estrutura aumenta o progresso do assentamento. Com construções suficientes, o mapa evolui automaticamente — atraindo novos NPCs, comércio e eventos.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- GM PANEL / SERVER STATS        -->
+<!-- ============================== -->
+<section>
+  <p class="section-label">Administração</p>
+  <h2 class="section-title" style="margin-bottom:2rem;">Painel GM & Estatísticas<br>do Servidor</h2>
+</section>
+<div class="gm-section">
+  <div class="gm-panel">
+    <div class="gm-topbar">
+      <span class="gm-title">AETERNITAS — Painel de Controle</span>
+      <span class="gm-badge">GM</span>
+      <span class="gm-live">Servidor Online</span>
+    </div>
+    <div class="gm-tabs">
+      <div class="gm-tab active" onclick="gmTab('stats')">Estatísticas</div>
+      <div class="gm-tab" onclick="gmTab('players')">Jogadores</div>
+      <div class="gm-tab" onclick="gmTab('world')">Mundo</div>
+      <div class="gm-tab" onclick="gmTab('dungeons')">Dungeons</div>
+      <div class="gm-tab" onclick="gmTab('console')">Console</div>
+    </div>
+
+    <!-- STATS TAB -->
+    <div class="gm-content active" id="gm-stats">
+      <div class="gm-stats-grid">
+        <div class="gm-stat"><span class="gm-stat-num">1.247</span><span class="gm-stat-label">Jogadores Online</span><div class="gm-stat-delta">↑ +34 última hora</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">4.891</span><span class="gm-stat-label">Personagens Ativos</span><div class="gm-stat-delta">↑ +12 hoje</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">38.204</span><span class="gm-stat-label">Mapas Explorados</span><div class="gm-stat-delta">↑ +891 hoje</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">127</span><span class="gm-stat-label">Mortes Hoje</span><div class="gm-stat-delta gm-stat-delta neg">↑ +17 vs ontem</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">3.412</span><span class="gm-stat-label">Dungeons Concluídas</span><div class="gm-stat-delta">↑ +203 hoje</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">6</span><span class="gm-stat-label">Dungeons SSS Ativas</span><div class="gm-stat-delta">= sem mudança</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">89</span><span class="gm-stat-label">Assentamentos Ativos</span><div class="gm-stat-delta">↑ +3 hoje</div></div>
+        <div class="gm-stat"><span class="gm-stat-num">42ms</span><span class="gm-stat-label">Latência Média</span><div class="gm-stat-delta" style="color:#4a9aaa;">Estável</div></div>
+      </div>
+      <div class="demo-panel-title">◆ Eventos Recentes do Servidor</div>
+      <div class="gm-log" id="gm-log-stats">
+        <div><span class="log-time">[08:42:11]</span> <span class="log-ok">[OK]</span> Dungeon "Catacumba de Vel'Drask" rank S concluída por grupo de 4 jogadores. <em>Primeira limpa.</em></div>
+        <div><span class="log-time">[08:37:55]</span> <span class="log-info">[INFO]</span> Mapa [14521, 8902] explorado — bioma: Anomalia. Geração: 1.2s.</div>
+        <div><span class="log-time">[08:35:23]</span> <span class="log-warn">[MORTE]</span> Personagem "Seryn Ashvale" morreu em Dungeon D "Minas de Ferro do Norte". Conta bloqueada 24h.</div>
+        <div><span class="log-time">[08:31:07]</span> <span class="log-ok">[FAMÍLIA]</span> NightFox_42 conectado como irmão de VoidWalker_BR. Match score: 94%.</div>
+        <div><span class="log-time">[08:28:44]</span> <span class="log-info">[CLIMA]</span> Tempestade de areia gerada em bioma Deserto [3210, 450]. Espalhando para 3 mapas adjacentes.</div>
+        <div><span class="log-time">[08:22:10]</span> <span class="log-ok">[ASSENTAMENTO]</span> Vilarejo "Porto Sereno" evoluiu para Cidade. Mapa [9,10]. Proprietário: DragonHunter_99.</div>
+        <div><span class="log-time">[08:19:33]</span> <span class="log-warn">[ALERTA]</span> Dungeon SSS "Abismo de Krevnar" ativou fase de evolução — rank subiu de SS para SSS.</div>
+        <div><span class="log-time">[08:15:00]</span> <span class="log-info">[CRON]</span> Ciclo climático #4471 executado. 847 mapas afetados.</div>
+      </div>
+    </div>
+
+    <!-- PLAYERS TAB -->
+    <div class="gm-content" id="gm-players">
+      <table class="gm-table">
+        <thead><tr><th>Jogador</th><th>Personagem</th><th>Localização</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>
+          <tr><td>VoidWalker_BR</td><td>Aldric Thornson</td><td>Floresta [9,10]</td><td style="color:#4a8a4a;">Online</td><td><button class="gm-action-btn">Teleportar</button> <button class="gm-action-btn safe">Mensagem</button></td></tr>
+          <tr><td>NightFox_42</td><td>Kael Ashenveil</td><td>Planície [8,10]</td><td style="color:#4a8a4a;">Online</td><td><button class="gm-action-btn">Teleportar</button> <button class="gm-action-btn safe">Mensagem</button></td></tr>
+          <tr><td>StarBreaker</td><td><em style="color:var(--text-dim);">Aguardando (22h restantes)</em></td><td>—</td><td style="color:var(--blood-bright);">Cooldown Morte</td><td><button class="gm-action-btn safe">Reduzir Cooldown</button></td></tr>
+          <tr><td>SilverMoon_77</td><td>Lysa Dawnforge</td><td>Cidade [12,8]</td><td style="color:#4a8a4a;">Online</td><td><button class="gm-action-btn">Teleportar</button> <button class="gm-action-btn safe">Mensagem</button></td></tr>
+          <tr><td>IronFist_X</td><td>Korath Grimwall</td><td>Montanha [5,14]</td><td style="color:var(--text-dim);">Offline (2h)</td><td><button class="gm-action-btn">Teleportar</button> <button class="gm-action-btn safe">Mensagem</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- WORLD TAB -->
+    <div class="gm-content" id="gm-world">
+      <div class="gm-stats-grid" style="margin-bottom:1.5rem;">
+        <div class="gm-stat"><span class="gm-stat-num">38.204</span><span class="gm-stat-label">Mapas Gerados</span></div>
+        <div class="gm-stat"><span class="gm-stat-num">0,004%</span><span class="gm-stat-label">Mundo Explorado</span></div>
+        <div class="gm-stat"><span class="gm-stat-num">19.241</span><span class="gm-stat-label">NPCs Vivos</span></div>
+        <div class="gm-stat"><span class="gm-stat-num">89</span><span class="gm-stat-label">Cidades/Assentamentos</span></div>
+        <div class="gm-stat"><span class="gm-stat-num">7</span><span class="gm-stat-label">Guerras Ativas</span></div>
+        <div class="gm-stat"><span class="gm-stat-num">1.204</span><span class="gm-stat-label">Entradas na Crônica</span></div>
+      </div>
+      <table class="gm-table">
+        <thead><tr><th>Assentamento</th><th>Dono</th><th>Bioma</th><th>Estágio</th><th>Coord.</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td>Porto Sereno</td><td>DragonHunter_99</td><td>🌊 Água</td><td style="color:var(--gold);">Cidade</td><td>[9,10]</td><td><button class="gm-action-btn safe">Ver</button></td></tr>
+          <tr><td>Forte das Cinzas</td><td>IronFist_X</td><td>⛰️ Montanha</td><td style="color:#cc9a3a;">Vilarejo</td><td>[5,14]</td><td><button class="gm-action-btn safe">Ver</button></td></tr>
+          <tr><td>Oásis Silencioso</td><td>SilverMoon_77</td><td>🏜️ Deserto</td><td style="color:var(--text-dim);">Acampamento</td><td>[21,3]</td><td><button class="gm-action-btn safe">Ver</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DUNGEONS TAB -->
+    <div class="gm-content" id="gm-dungeons">
+      <table class="gm-table">
+        <thead><tr><th>Nome</th><th>Rank</th><th>Bioma</th><th>Primeira Limpa</th><th>Evoluindo</th><th>Ação</th></tr></thead>
+        <tbody>
+          <tr><td>Catacumba de Vel'Drask</td><td><span class="rank-badge rank-S">S</span></td><td>Cidade</td><td style="color:#4a8a4a;">✓ VoidWalker_BR</td><td style="color:#4a8a4a;">↑ A→S</td><td><button class="gm-action-btn safe">Inspecionar</button></td></tr>
+          <tr><td>Minas de Ferro do Norte</td><td><span class="rank-badge rank-D">D</span></td><td>Montanha</td><td style="color:#4a8a4a;">✓ IronFist_X</td><td style="color:var(--text-dim);">Estável</td><td><button class="gm-action-btn safe">Inspecionar</button></td></tr>
+          <tr><td>Abismo de Krevnar</td><td><span class="rank-badge rank-SSS">SSS</span></td><td>Anomalia</td><td style="color:var(--blood-bright);">Nunca concluída</td><td style="color:var(--blood-bright);">↑ SS→SSS</td><td><button class="gm-action-btn">Forçar Reset</button></td></tr>
+          <tr><td>Tumba das Areias</td><td><span class="rank-badge rank-B">B</span></td><td>Deserto</td><td style="color:#4a8a4a;">✓ SilverMoon_77</td><td style="color:var(--blood);">↓ A→B</td><td><button class="gm-action-btn safe">Inspecionar</button></td></tr>
+          <tr><td>Bosque Maldito</td><td><span class="rank-badge rank-C">C</span></td><td>Floresta</td><td style="color:var(--text-dim);">Não concluída</td><td style="color:var(--text-dim);">Estável</td><td><button class="gm-action-btn safe">Inspecionar</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- CONSOLE TAB -->
+    <div class="gm-content" id="gm-console">
+      <div class="gm-log" id="gm-console-log">
+        <div><span class="log-time">[console]</span> AETERNITAS GM Console v0.1 — Servidor Ativo</div>
+        <div><span class="log-time">[console]</span> Digite um comando abaixo. Comandos disponíveis: help, stats, teleport, kick, ban, weather, dungeon</div>
+      </div>
+      <div class="gm-input-row">
+        <input class="gm-cmd-input" id="gmCmdInput" placeholder="> Digite um comando GM..." onkeydown="if(event.key==='Enter')runGmCmd()">
+        <button class="gm-cmd-run" onclick="runGmCmd()">Executar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="ornament" style="position:relative;z-index:1;margin-top:4rem;">
+
+<!-- ============================== -->
+<!-- AVALIAÇÃO BROWSER-BASED        -->
+<!-- ============================== -->
+<section>
+  <p class="section-label">Tecnologia</p>
+  <h2 class="section-title">100% no Navegador<br>é viável — e é o caminho certo.</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Um MMORPG como Aeternitas pode ser construído 100% no navegador usando tecnologias modernas. Sem instalação, sem cliente pesado, sem barreira de entrada. A estética atual (tiles coloridos + tipografia) é intencional e poderosa. <em>Sprites e texturas</em> podem ser adicionados camada por camada conforme o projeto evolui — o canvas HTML5 e WebGL permitem qualquer nível de fidelidade visual no futuro.
+  </p>
+  <div class="systems-grid" style="margin-top:2rem;">
+    <div class="system-card">
+      <span class="card-icon">🌐</span>
+      <div class="card-title">Frontend — Canvas/WebGL</div>
+      <p class="card-text">Render de mapas em Canvas 2D agora; migração para WebGL com sprites quando necessário. <strong>Phaser.js ou PixiJS</strong> como engine opcional no futuro.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">⚡</span>
+      <div class="card-title">Comunicação — WebSocket</div>
+      <p class="card-text">Chat em tempo real, movimento de jogadores, eventos de mundo e notificações via <strong>WebSocket persistente</strong>. Fallback para SSE em conexões instáveis.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">🗄️</span>
+      <div class="card-title">Backend — Node/Go</div>
+      <p class="card-text">Servidor de jogo em <strong>Node.js ou Go</strong> com shards por região do mapa. Banco espacial para o mundo, Redis para estado em tempo real.</p>
+    </div>
+    <div class="system-card">
+      <span class="card-icon">🎨</span>
+      <div class="card-title">Gráficos — Layered</div>
+      <p class="card-text">Hoje: tiles coloridos (leve, expressivo). Futuro: <strong>sprites 16px → 32px → texturas</strong> em camadas sem refatoração — o sistema de renderização é o mesmo.</p>
+    </div>
+  </div>
+</section>
+
+<hr class="ornament" style="position:relative;z-index:1;">
+
+<!-- ============================== -->
+<!-- ROADMAP DE FEATURES            -->
+<!-- ============================== -->
+<section>
+  <p class="section-label">Roadmap</p>
+  <h2 class="section-title">Plano de Features<br>por Fase de Desenvolvimento</h2>
+  <p class="section-body" style="font-size:0.92rem;">
+    Construindo de baixo para cima — primeiro o mundo existe, depois tem vida, depois tem história, depois tem política, depois tem guerra. Cada fase é jogável por si só.
+  </p>
+  <div class="roadmap-grid">
+    <div class="phase-card p0">
+      <div class="phase-label">Fase 0 — Prototype</div>
+      <div class="phase-title">O Mundo Existe</div>
+      <ul class="phase-items">
+        <li class="done">Mapa-mundo 2D com biomas <span class="pill pill-done">Feito</span></li>
+        <li class="done">Geração por afinidade de terreno <span class="pill pill-done">Feito</span></li>
+        <li class="done">Mapa interno por bioma <span class="pill pill-done">Feito</span></li>
+        <li class="done">Demo de criação de personagem <span class="pill pill-done">Feito</span></li>
+        <li class="done">Ranks de dungeon F→SSS <span class="pill pill-done">Feito</span></li>
+        <li class="done">Mockup de painel GM <span class="pill pill-done">Feito</span></li>
+      </ul>
+    </div>
+    <div class="phase-card p1">
+      <div class="phase-label">Fase 1 — Alpha</div>
+      <div class="phase-title">O Mundo Funciona</div>
+      <ul class="phase-items">
+        <li>Servidor WebSocket real <span class="pill pill-next">Próximo</span></li>
+        <li>Persistência de mapa no banco <span class="pill pill-next">Próximo</span></li>
+        <li>Criação de personagem real <span class="pill pill-next">Próximo</span></li>
+        <li>Movimentação no mapa <span class="pill pill-plan">Planejado</span></li>
+        <li>Sistema de combat básico <span class="pill pill-plan">Planejado</span></li>
+        <li>Chat local funcional <span class="pill pill-plan">Planejado</span></li>
+        <li>Dungeons entráveis <span class="pill pill-plan">Planejado</span></li>
+      </ul>
+    </div>
+    <div class="phase-card p2">
+      <div class="phase-label">Fase 2 — Beta</div>
+      <div class="phase-title">O Mundo Tem Vida</div>
+      <ul class="phase-items">
+        <li>NPCs com memória e rotinas <span class="pill pill-plan">Planejado</span></li>
+        <li>Teia familiar ativa <span class="pill pill-plan">Planejado</span></li>
+        <li>Sistema de missões dinâmicas <span class="pill pill-plan">Planejado</span></li>
+        <li>Morte permanente + cooldown 24h <span class="pill pill-plan">Planejado</span></li>
+        <li>Crônica do mundo persistente <span class="pill pill-plan">Planejado</span></li>
+        <li>Clima e eventos de ecossistema <span class="pill pill-plan">Planejado</span></li>
+        <li>Dungeons evolutivas (rank muda) <span class="pill pill-plan">Planejado</span></li>
+      </ul>
+    </div>
+    <div class="phase-card p3">
+      <div class="phase-label">Fase 3 — Early Access</div>
+      <div class="phase-title">O Mundo Tem História</div>
+      <ul class="phase-items">
+        <li>Sandbox: construção de assentamentos <span class="pill pill-plan">Planejado</span></li>
+        <li>Civilizações com política <span class="pill pill-plan">Planejado</span></li>
+        <li>Sistema de comércio entre mapas <span class="pill pill-plan">Planejado</span></li>
+        <li>Guildas e organizações <span class="pill pill-plan">Planejado</span></li>
+        <li>Comunicação via Herald (entre mapas) <span class="pill pill-plan">Planejado</span></li>
+        <li>Sprites 16px substituindo tiles <span class="pill pill-plan">Planejado</span></li>
+        <li>Nomeação de dungeons (1º a concluir) <span class="pill pill-plan">Planejado</span></li>
+      </ul>
+    </div>
+    <div class="phase-card p4">
+      <div class="phase-label">Fase 4 — Live</div>
+      <div class="phase-title">O Mundo Tem Guerras</div>
+      <ul class="phase-items">
+        <li>Guerras entre civilizações <span class="pill pill-plan">Planejado</span></li>
+        <li>Mapas conquistáveis e perdíveis <span class="pill pill-plan">Planejado</span></li>
+        <li>Legado intergeracional completo <span class="pill pill-plan">Planejado</span></li>
+        <li>Dungeons SSS (eventos mundiais) <span class="pill pill-plan">Planejado</span></li>
+        <li>Geração de línguas por civilização <span class="pill pill-plan">Planejado</span></li>
+        <li>Reinos jogáveis com leis e impostos <span class="pill pill-plan">Planejado</span></li>
+        <li>Texturas e áudio ambientais <span class="pill pill-plan">Planejado</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- TAGS DE FEATURES -->
+<section>
+  <p class="section-label">Features do Sistema</p>
+  <h2 class="section-title" style="margin-bottom:2rem;">Tudo que compõe<br>o mundo vivo</h2>
+  <span class="tag">Mundo 1 Bilhão de Células</span>
+  <span class="tag">Mapa em Dois Níveis</span>
+  <span class="tag">7 Biomas Únicos</span>
+  <span class="tag">Afinidade de Terreno</span>
+  <span class="tag">Floresta Procedural</span>
+  <span class="tag">Deserto Procedural</span>
+  <span class="tag">Montanha Procedural</span>
+  <span class="tag">Cidade Viva</span>
+  <span class="tag">Água e Subaquático</span>
+  <span class="tag">Planície de Batalha</span>
+  <span class="tag">Terras Anômalas</span>
+  <span class="tag">Família Compartilhada</span>
+  <span class="tag">Slots Familiares</span>
+  <span class="tag">Crônica Permanente</span>
+  <span class="tag">Missões Dinâmicas</span>
+  <span class="tag">NPCs com Memória</span>
+  <span class="tag red">Hardcore Death</span>
+  <span class="tag red">Legado Pós-Morte</span>
+  <span class="tag red">24h Death Cooldown</span>
+  <span class="tag">Sistema de Traços por Bioma</span>
+  <span class="tag">Herança de Personagem</span>
+  <span class="tag">Civilizações Procedurais</span>
+  <span class="tag">Dungeons F→SSS</span>
+  <span class="tag">Dungeons Evolutivas</span>
+  <span class="tag">Nomear Dungeon (1º Clear)</span>
+  <span class="tag">Chat Local por Mapa</span>
+  <span class="tag">Sistema de Localização</span>
+  <span class="tag">Clima por Ecossistema</span>
+  <span class="tag">Sandbox & Construção</span>
+  <span class="tag">Assentamentos Evolutivos</span>
+  <span class="tag">Guerras Persistentes</span>
+  <span class="tag">GM Panel & Server Stats</span>
+  <span class="tag">100% Browser-Based</span>
+  <span class="tag">Estilo Manhwa</span>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-title">AETERNITAS</div>
+  <p class="footer-sub">Um mundo que nasce. Uma história que não termina. Uma vida que importa.</p>
+</footer>
+
+
+<script>
+// =============================================
+// AETERNITAS — SISTEMA DE MAPA EM DOIS NÍVEIS
+// =============================================
+
+// --- CONSTANTES ---
+const WORLD_SIZE = 20; // demo: 20x20 (representa 31623x31623 no real)
+const MICRO_SIZE = 16; // mapa interno 16x16
+
+// Biomas e suas propriedades
+const BIOMES = {
+  fog:      { cls:'wfog',      icon:'🌫️', name:'Névoa', color:'#080604' },
+  forest:   { cls:'wforest',   icon:'🌲', name:'Floresta', color:'#1a3a1a' },
+  desert:   { cls:'wdesert',   icon:'🏜️', name:'Deserto', color:'#3a2e14' },
+  mountain: { cls:'wmountain', icon:'⛰️', name:'Montanha', color:'#3a3530' },
+  city:     { cls:'wcity',     icon:'🏛️', name:'Cidade', color:'#3a2a10' },
+  water:    { cls:'wwater',    icon:'🌊', name:'Água', color:'#0a1a2a' },
+  plains:   { cls:'wplains',   icon:'🌾', name:'Planície', color:'#2a3a1a' },
+  anomaly:  { cls:'wanomaly',  icon:'✦',  name:'Anomalia', color:'#1a0a2a' },
+};
+
+// Pesos de afinidade: probabilidade de cada bioma gerar vizinhos similares
+const AFFINITY = {
+  forest:   { forest:6, plains:3, mountain:2, water:1, desert:0, city:1, anomaly:0 },
+  desert:   { desert:6, plains:2, anomaly:1, mountain:1, forest:0, water:0, city:1 },
+  mountain: { mountain:6, forest:2, plains:1, anomaly:1, desert:1, water:1, city:0 },
+  city:     { city:2, plains:4, water:2, forest:1, mountain:1, desert:0, anomaly:0 },
+  water:    { water:7, plains:2, forest:1, mountain:1, desert:0, city:0, anomaly:0 },
+  plains:   { plains:4, forest:2, water:2, mountain:1, desert:1, city:2, anomaly:0 },
+  anomaly:  { anomaly:3, mountain:2, forest:1, desert:1, plains:1, water:1, city:0 },
+};
+
+// Estado do mapa-mundo
+let worldState = Array(WORLD_SIZE * WORLD_SIZE).fill('fog');
+let selectedCell = -1;
+let revealedCells = new Set();
+
+// Inicializa com algumas células reveladas (região inicial)
+function initWorld() {
+  // Ponto de spawn do jogador
+  const spawnIdx = Math.floor(WORLD_SIZE / 2) * WORLD_SIZE + Math.floor(WORLD_SIZE / 2);
+  worldState[spawnIdx] = 'plains';
+  revealedCells.add(spawnIdx);
+  
+  // Algumas células adjacentes reveladas
+  const initialReveals = [
+    { idx: spawnIdx + 1, type: 'forest' },
+    { idx: spawnIdx - 1, type: 'plains' },
+    { idx: spawnIdx + WORLD_SIZE, type: 'water' },
+    { idx: spawnIdx - WORLD_SIZE, type: 'mountain' },
+    { idx: spawnIdx + WORLD_SIZE + 1, type: 'forest' },
+    { idx: spawnIdx - WORLD_SIZE - 1, type: 'city' },
+    { idx: spawnIdx + WORLD_SIZE - 1, type: 'plains' },
+    { idx: spawnIdx - WORLD_SIZE + 1, type: 'mountain' },
+  ];
+  
+  initialReveals.forEach(({ idx, type }) => {
+    if (idx >= 0 && idx < WORLD_SIZE * WORLD_SIZE) {
+      worldState[idx] = type;
+      revealedCells.add(idx);
+    }
+  });
+  
+  // Marca spawn como player
+  worldState[spawnIdx] = 'player';
+
+  renderWorldMap();
+}
+
+// Renderiza o mapa-mundo macro
+function renderWorldMap() {
+  const grid = document.getElementById('worldGrid');
+  grid.innerHTML = '';
+  worldState.forEach((biome, i) => {
+    const cell = document.createElement('div');
+    const bKey = biome === 'player' ? 'plains' : biome;
+    const cls = biome === 'player' ? 'wplayer' : (BIOMES[biome]?.cls || 'wfog');
+    cell.className = `world-cell ${cls}${i === selectedCell ? ' wselected' : ''}`;
+    cell.title = biome === 'fog' 
+      ? `Célula [${i % WORLD_SIZE}, ${Math.floor(i / WORLD_SIZE)}] — Inexplorada`
+      : `${BIOMES[bKey]?.name || biome} [${i % WORLD_SIZE}, ${Math.floor(i / WORLD_SIZE)}]`;
+    cell.onclick = () => clickWorldCell(i);
+    grid.appendChild(cell);
+  });
+}
+
+// Escolhe bioma por afinidade com vizinhos
+function chooseBiomeByAffinity(idx) {
+  const x = idx % WORLD_SIZE;
+  const y = Math.floor(idx / WORLD_SIZE);
+  const neighborIdxs = [
+    y > 0 ? idx - WORLD_SIZE : -1,
+    y < WORLD_SIZE-1 ? idx + WORLD_SIZE : -1,
+    x > 0 ? idx - 1 : -1,
+    x < WORLD_SIZE-1 ? idx + 1 : -1,
+  ].filter(n => n >= 0 && worldState[n] !== 'fog');
+
+  const scores = { forest:1, desert:1, mountain:1, city:0.5, water:1, plains:2, anomaly:0.2 };
+  
+  neighborIdxs.forEach(n => {
+    const nb = worldState[n] === 'player' ? 'plains' : worldState[n];
+    if (AFFINITY[nb]) {
+      Object.entries(AFFINITY[nb]).forEach(([biome, weight]) => {
+        scores[biome] = (scores[biome] || 0) + weight;
+      });
+    }
+  });
+
+  // Raridade do anomaly
+  scores.anomaly = Math.min(scores.anomaly, 0.5);
+  
+  const total = Object.values(scores).reduce((a,b) => a+b, 0);
+  let rand = Math.random() * total;
+  for (const [biome, weight] of Object.entries(scores)) {
+    rand -= weight;
+    if (rand <= 0) return biome;
+  }
+  return 'plains';
+}
+
+// Clique em célula do mapa-mundo
+function clickWorldCell(idx) {
+  const x = idx % WORLD_SIZE;
+  const y = Math.floor(idx / WORLD_SIZE);
+  
+  if (worldState[idx] === 'fog') {
+    // Reveal com afinidade
+    const biome = chooseBiomeByAffinity(idx);
+    worldState[idx] = biome;
+    revealedCells.add(idx);
+    
+    // Revelar células vizinhas com baixa chance
+    const neighbors = [idx-1, idx+1, idx-WORLD_SIZE, idx+WORLD_SIZE]
+      .filter(n => n >= 0 && n < WORLD_SIZE * WORLD_SIZE && worldState[n] === 'fog');
+    neighbors.forEach(n => {
+      if (Math.random() < 0.25) {
+        worldState[n] = chooseBiomeByAffinity(n);
+        revealedCells.add(n);
+      }
+    });
+  }
+  
+  selectedCell = idx;
+  renderWorldMap();
+  renderTerrainDetail(idx, x, y);
+}
+
+// Renderiza o painel de detalhe do terreno (mapa micro)
+function renderTerrainDetail(idx, x, y) {
+  const rawBiome = worldState[idx];
+  const biome = rawBiome === 'player' ? 'plains' : rawBiome;
+  const info = BIOMES[biome] || BIOMES.plains;
+
+  document.getElementById('terrainIcon').textContent = info.icon;
+  document.getElementById('terrainName').textContent = `${info.name} — Mapa Interno`;
+  document.getElementById('terrainCoords').textContent = `Coordenadas Mundo: [${x}, ${y}] · Setor ${Math.floor(x/5)+1}-${Math.floor(y/5)+1}`;
+
+  // Gera mapa micro procedural baseado no bioma
+  const micro = generateMicroMap(biome);
+  renderMicroMap(micro, biome, info.color);
+  renderTerrainInfo(biome, x, y);
+  renderTerrainDesc(biome);
+}
+
+// Gera o mapa interno (16×16) baseado no bioma
+function generateMicroMap(biome) {
+  const cells = [];
+  // Composição base por bioma
+  const composition = {
+    forest:   { base:'forest', dungeonChance:0.08, npcChance:0.06, resourceChance:0.10 },
+    desert:   { base:'desert', dungeonChance:0.07, npcChance:0.04, resourceChance:0.07 },
+    mountain: { base:'mountain', dungeonChance:0.12, npcChance:0.05, resourceChance:0.12 },
+    city:     { base:'city', dungeonChance:0.05, npcChance:0.18, resourceChance:0.08 },
+    water:    { base:'water', dungeonChance:0.06, npcChance:0.03, resourceChance:0.07 },
+    plains:   { base:'plains', dungeonChance:0.04, npcChance:0.07, resourceChance:0.08 },
+    anomaly:  { base:'anomaly', dungeonChance:0.18, npcChance:0.04, resourceChance:0.06 },
+  };
+  const cfg = composition[biome] || composition.plains;
+
+  for (let i = 0; i < MICRO_SIZE * MICRO_SIZE; i++) {
+    const r = Math.random();
+    if (r < cfg.dungeonChance) cells.push('dungeon');
+    else if (r < cfg.dungeonChance + cfg.npcChance) cells.push('npc');
+    else if (r < cfg.dungeonChance + cfg.npcChance + cfg.resourceChance) cells.push('resource');
+    else cells.push('base');
+  }
+  // Spawn point no centro
+  cells[Math.floor(MICRO_SIZE/2)*MICRO_SIZE + Math.floor(MICRO_SIZE/2)] = 'spawn';
+  return cells;
+}
+
+// Renderiza o mapa micro no painel
+function renderMicroMap(cells, biome, baseColor) {
+  const container = document.getElementById('terrainMicroGrid');
+  container.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'terrain-micro-grid';
+  grid.style.gridTemplateColumns = `repeat(${MICRO_SIZE}, 1fr)`;
+  
+  const microMessages = {
+    dungeon: '⚠️ Entrada de dungeon detectada. Perigo extremo. Outros jogadores notificados.',
+    npc: '◉ NPC encontrado. O servidor gera sua história, missões e diálogo em tempo real.',
+    resource: '◆ Recurso raro encontrado. Disponível para coleta — pode sumir se outro jogador chegar primeiro.',
+    spawn: '⚔️ Ponto de entrada do mapa. Sua personagem emerge aqui ao entrar neste terreno.',
+  };
+
+  cells.forEach((type, i) => {
+    const cell = document.createElement('div');
+    cell.className = `micro-cell`;
+    if (type === 'base') {
+      cell.style.background = baseColor;
+      cell.style.opacity = 0.7 + Math.random() * 0.3;
+    } else {
+      cell.classList.add(`m-${type}`);
+    }
+    if (microMessages[type]) {
+      cell.style.cursor = 'pointer';
+      cell.onclick = () => {
+        document.getElementById('terrainDesc').innerHTML = `<strong style="color:var(--gold)">${microMessages[type].split(' ')[0]}</strong> ${microMessages[type].slice(microMessages[type].indexOf(' ')+1)}`;
+      };
+    }
+    grid.appendChild(cell);
+  });
+  container.appendChild(grid);
+
+  // Legenda micro
+  const leg = document.createElement('div');
+  leg.className = 'world-legend';
+  leg.style.marginTop = '0.5rem';
+  leg.innerHTML = `
+    <div class="legend-item"><div class="legend-dot" style="background:#200505;border:1px solid #8b1a1a;"></div> Dungeon</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2a2010;border:1px solid #7a5e2a;"></div> NPC</div>
+    <div class="legend-item"><div class="legend-dot" style="background:${baseColor};border:1px solid #4a8a4a;"></div> Recurso</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blood);"></div> Entrada</div>
+  `;
+  container.appendChild(leg);
+}
+
+// Gera informações de terreno
+function renderTerrainInfo(biome, x, y) {
+  const dungeonNames = {
+    forest: 'Caverna das Raízes', desert: 'Tumba Ancestral', mountain: 'Mina Abandonada',
+    city: 'Esgotos Profundos', water: 'Templo Afundado', plains: 'Cemitério de Guerra', anomaly: 'Fratura Dimensional'
+  };
+  const npcNames = {
+    forest: 'Druida Errante', desert: 'Nômade do Deserto', mountain: 'Ferreiro Eremita',
+    city: 'Mercador Suspeito', water: 'Pescador Recluso', plains: 'Cavaleiro Honrado', anomaly: 'Entidade Mística'
+  };
+  const resources = {
+    forest: 'Madeira Lunar', desert: 'Cristal de Areia', mountain: 'Minério de Sangue',
+    city: 'Pergaminho Secreto', water: 'Coral Abissal', plains: 'Ervas Raras', anomaly: 'Fragmento Dimensional'
+  };
+  const dangers = {
+    forest: 'Médio', desert: 'Alto', mountain: 'Alto', city: 'Baixo-Médio',
+    water: 'Médio', plains: 'Baixo', anomaly: 'Extremo'
+  };
+
+  const seed = (x * 31 + y * 17) % 1000;
+  const dungeonCount = biome === 'anomaly' ? 3 : biome === 'mountain' ? Math.floor(seed%3)+2 : Math.floor(seed%2)+1;
+  const npcCount = biome === 'city' ? Math.floor(seed%8)+5 : Math.floor(seed%4)+1;
+
+  document.getElementById('terrainInfoGrid').innerHTML = `
+    <div class="terrain-info-grid">
+      <div class="t-info-item">
+        <div class="t-info-label">Dungeon Principal</div>
+        <div class="t-info-val">${dungeonNames[biome] || '—'} (${dungeonCount})</div>
+      </div>
+      <div class="t-info-item">
+        <div class="t-info-label">NPC Destacado</div>
+        <div class="t-info-val">${npcNames[biome] || '—'} (+${npcCount - 1})</div>
+      </div>
+      <div class="t-info-item">
+        <div class="t-info-label">Recurso Raro</div>
+        <div class="t-info-val">${resources[biome] || '—'}</div>
+      </div>
+      <div class="t-info-item">
+        <div class="t-info-label">Nível de Perigo</div>
+        <div class="t-info-val">${dangers[biome] || 'Desconhecido'}</div>
+      </div>
+      <div class="t-info-item">
+        <div class="t-info-label">Status</div>
+        <div class="t-info-val" style="color:#4a8a4a;">Explorado · Persistente</div>
+      </div>
+      <div class="t-info-item">
+        <div class="t-info-label">Civilização</div>
+        <div class="t-info-val" style="color:var(--gold-dim);">${biome === 'city' ? 'República de Valdris' : biome === 'anomaly' ? 'N/A — Região Maldita' : 'Influência de Thornmere'}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Descrição do terreno
+function renderTerrainDesc(biome) {
+  const descs = {
+    forest: 'Floresta densa gerada no momento da descoberta. Criaturas habitam estas terras desde antes do mundo ser explorado. O servidor mantém o estado de cada árvore, riacho e segredo.',
+    desert: 'Areias que guardam civilizações extintas. Tempestades periódicas alteram parte do layout. Tumbas ancestrais esperam por alguém corajoso — ou imprudente — o suficiente para explorá-las.',
+    mountain: 'Picos que tocam as nuvens e minas que chegam ao coração da terra. Tribos de gigantes e eremitas dividem estas alturas hostis. Minerais raros compensam o perigo extremo.',
+    city: 'Uma cidade viva com centenas de NPCs com memória, política interna e facções em conflito. Tudo que você faz aqui importa — e é lembrado. Esgotos labirínticos escondem segredos que os nobres preferem enterrados.',
+    water: 'Águas que vão além do que os olhos alcançam. No fundo repousam cidades afundadas e templos de cultos extintos. Cuidado: criaturas abissais protegem os segredos mais profundos.',
+    plains: 'Campos abertos estratégicos. Aldeias nômades passam conforme as estações. Batalhas campais deixaram cicatrizes — e cemitérios com mortos que podem não estar totalmente quietos.',
+    anomaly: 'Aqui as regras do mundo não se aplicam. Gravidade invertida, tempo acelerado, realidade fraturada. Apenas os mais preparados sobrevivem — mas as recompensas não existem em nenhum outro lugar do mundo.',
+  };
+  document.getElementById('terrainDesc').innerHTML = descs[biome] || '—';
+}
+
+// ---- GERADOR DE PERSONAGEM ----
+const names = ['Eryn','Davan','Solis','Vorn','Caelith','Mira','Thane','Lysa','Aldec','Bran','Siria','Korath','Vaela','Drusk','Inaë'];
+const biomeOrigins = {
+  forest:   ['filho de um caçador da floresta profunda','criado por druidas em um templo oculto','sobrevivente de um ataque de criaturas da mata'],
+  desert:   ['neto de um nômade das areias eternas','órfão de uma caravana destruída por tempestade','guardião de uma tumba ancestral profanada'],
+  mountain: ['filho de um ferreiro das altas minas','descendente de uma tribo de gigantes diluída','sobrevivente de um colapso de mina'],
+  city:     ['filho bastardo de um nobre corrupto','mercador falido que perdeu tudo em uma aposta','escriba que descobriu um segredo que não deveria'],
+  water:    ['marinheiro que naufragou em costas desconhecidas','filho de pirata que virou caçador de recompensas','pescador que viu algo no fundo que não devia'],
+  plains:   ['cavaleiro sem reino após a queda de sua cidade','filho de fazendeiro que jurou vingança','sobrevivente da última grande batalha das planícies'],
+  anomaly:  ['nascido durante uma fratura dimensional','único sobrevivente de um experimento mágico fracassado','tocado por algo além da compreensão mortal'],
+};
+const jobs = ['Ferreiro','Curandeira','Ladino','Guardião','Alquimista','Mercenário','Escriba','Caçadora','Druida','Paladino','Pirata','Bardo'];
+const traits = [
+  ['Corajoso','Impulsivo','Fiel'],['Calculista','Frio','Preciso'],['Caloroso','Ingênuo','Determinado'],
+  ['Sombrio','Inteligente','Desconfiado'],['Gentil','Teimoso','Curioso'],['Ambicioso','Carismático','Mentiroso'],
+  ['Honrado','Lento','Inquebrável'],['Misterioso','Ágil','Solitário'],
+];
+const familySlots = [
+  'irmão desaparecido há anos','irmã que jurou vingar a família','pai que partiu sem explicação',
+  'mãe que serve ao inimigo','primo que lidera uma gangue criminosa','filha perdida na infância',
+  'mentor que se tornou vilão','avô que guarda um segredo de sangue',
+];
+const biomeKeys = ['forest','desert','mountain','city','water','plains','anomaly'];
+
+function generateChar() {
+  const biome = biomeKeys[Math.floor(Math.random() * biomeKeys.length)];
+  const origins = biomeOrigins[biome];
+  const name = names[Math.floor(Math.random() * names.length)];
+  const origin = origins[Math.floor(Math.random() * origins.length)];
+  const job = jobs[Math.floor(Math.random() * jobs.length)];
+  const trait = traits[Math.floor(Math.random() * traits.length)];
+  const slot = familySlots[Math.floor(Math.random() * familySlots.length)];
+  const bInfo = BIOMES[biome];
+  
+  const out = document.getElementById('gen-output');
+  out.innerHTML = `
+    <strong style="color:var(--gold);font-family:'Cinzel',serif;">${name}, ${job}</strong><br>
+    <span style="color:var(--gold-dim);font-size:0.75rem;">Bioma Natal: ${bInfo.icon} ${bInfo.name}</span><br>
+    <span style="color:var(--text-dim);font-size:0.8rem;">• Origem: ${origin}</span><br>
+    <span style="color:var(--text-dim);font-size:0.8rem;">• Traços: ${trait.join(', ')}</span><br>
+    <span style="color:var(--gold-dim);font-size:0.8rem;">⟶ Slot familiar: ${slot}</span><br>
+    <span style="color:var(--blood);font-size:0.75rem;font-style:italic;">Sistema verificando pool global de famílias compatíveis...</span>
+  `;
+}
+
+// ---- SCROLL HELPERS ----
+function scrollToSystems() {
+  document.getElementById('systems').scrollIntoView({ behavior: 'smooth' });
+}
+function scrollToDemo() {
+  document.getElementById('worldMapSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+// INIT
+initWorld();
+
+// =============================================
+// CHARACTER CREATION
+// =============================================
+let selectedGender = 'M';
+function selectGender(g) {
+  selectedGender = g;
+  ['M','F','N'].forEach(x => document.getElementById('gender'+x).classList.toggle('selected', x===g));
+}
+
+const surnamesByBiome = {
+  forest:   ['Ashbark','Moonshadow','Deeproot','Thornwood','Greenveil'],
+  desert:   ['Sandforge','Dustwalker','Sunscorch','Ashcroft','Mirageborn'],
+  mountain: ['Ironpeak','Stonecrest','Greymantle','Coldforge','Rockfall'],
+  city:     ['Aldenvale','Blackwood','Mercer','Dawnshire','Goldhart'],
+  water:    ['Wavecrest','Deepmourne','Tidesong','Saltborn','Mistfall'],
+  plains:   ['Swiftfield','Greenmantle','Windrunner','Graymoor','Duskholm'],
+  anomaly:  ['Voidmark','Riftborn','Ashenveil','Wraithsong','Nullmire'],
+};
+const profsByBiome = {
+  forest:   ['Caçador','Druida','Arqueira','Guardião da Mata','Coletora'],
+  desert:   ['Nômade','Alquimista','Ladino','Mercenário das Areias','Escriba'],
+  mountain: ['Ferreiro','Mineiro','Guardião','Escalador','Gravador de Runas'],
+  city:     ['Mercador','Escriba','Nobre','Espião','Curandeiro'],
+  water:    ['Marinheiro','Pescador','Pirata','Navegador','Feiticeiro das Marés'],
+  plains:   ['Cavaleiro','Fazendeiro','Bardo','Paladino','Arqueira Nômade'],
+  anomaly:  ['Aberração','Caçador de Anomalias','Mago Fraturado','Viajante do Vazio','Sinal Vivo'],
+};
+
+function revealCharacter() {
+  const nameInput = document.getElementById('charNameInput').value.trim();
+  const firstName = nameInput || 'Eryn';
+  const biomeKeys = ['forest','desert','mountain','city','water','plains','anomaly'];
+  const weights =   [15, 12, 12, 10, 12, 15, 4];
+  let r = Math.random() * weights.reduce((a,b)=>a+b,0);
+  let biome = 'plains';
+  for (let i=0; i<biomeKeys.length; i++) { r -= weights[i]; if (r<=0){ biome=biomeKeys[i]; break; } }
+
+  const bInfo = BIOMES[biome];
+  const surnames = surnamesByBiome[biome];
+  const profs    = profsByBiome[biome];
+  const surname  = surnames[Math.floor(Math.random()*surnames.length)];
+  const prof     = profs[Math.floor(Math.random()*profs.length)];
+  const traitSet = traits[Math.floor(Math.random()*traits.length)];
+  const slot     = familySlots[Math.floor(Math.random()*familySlots.length)];
+  const langs    = { forest:'Sylvano',desert:'Aridim',mountain:'Dwarven Antigo',city:'Comércio Comum',water:'Língua das Marés',plains:'Nômade Central',anomaly:'Fragmentado (incompreensível a maioria)' };
+  const coordX   = Math.floor(Math.random()*31623);
+  const coordY   = Math.floor(Math.random()*31623);
+
+  document.getElementById('revealBiome').textContent = bInfo.icon + ' ' + bInfo.name;
+  document.getElementById('revealBiome').style.color = 'var(--gold)';
+  document.getElementById('revealChar').innerHTML = `
+    <strong style="font-family:'Cinzel',serif;color:var(--gold)">${firstName} ${surname}</strong><br>
+    <span style="color:var(--text-dim);font-size:0.78rem;">Coordenadas: [${coordX}, ${coordY}] — Servidor gerou este mapa agora</span><br><br>
+    <span style="color:var(--text-dim)">Profissão: <strong style="color:var(--text)">${prof}</strong></span><br>
+    <span style="color:var(--text-dim)">Traços: <strong style="color:var(--text)">${traitSet.join(', ')}</strong></span><br>
+    <span style="color:var(--text-dim)">Língua natal: <strong style="color:var(--text)">${langs[biome]}</strong></span><br>
+    <span style="color:var(--gold-dim)">⟶ Slot familiar aberto: ${slot}</span><br>
+    <span style="color:var(--blood);font-size:0.75rem;font-style:italic">Sistema verificando pool global...</span>
+  `;
+  document.querySelector('.reveal-box .reveal-label').textContent = 'Mapa natal revelado:';
+}
+
+// =============================================
+// DUNGEON SYSTEM
+// =============================================
+const dungeonRankData = [
+  { rank:'F',  color:'rank-F',  freq:'Muito Comum', danger:'Básico',    floors:'1', boss:'Goblin Corrompido' },
+  { rank:'E',  color:'rank-E',  freq:'Comum',       danger:'Fácil',     floors:'1-2', boss:'Lorde dos Ratos' },
+  { rank:'D',  color:'rank-D',  freq:'Moderada',    danger:'Médio',     floors:'2-3', boss:'Espírito Preso' },
+  { rank:'C',  color:'rank-C',  freq:'Incomum',     danger:'Desaf.',    floors:'3-4', boss:'Guardião Antigo' },
+  { rank:'B',  color:'rank-B',  freq:'Rara',        danger:'Difícil',   floors:'4-5', boss:'Lich Menor' },
+  { rank:'A',  color:'rank-A',  freq:'Muito Rara',  danger:'Extremo',   floors:'5-6', boss:'Dracolard' },
+  { rank:'S',  color:'rank-S',  freq:'Rarís.',      danger:'Letal',     floors:'6-8', boss:'Avatar da Destruição' },
+  { rank:'SS', color:'rank-SS', freq:'~1/bioma',    danger:'Calamidade',floors:'8-10',boss:'Entidade Antiga' },
+  { rank:'SSS',color:'rank-SSS',freq:'Única',       danger:'??',        floors:'∞',   boss:'O Inominável' },
+];
+
+const dungeonPrefixes = ['Catacumba','Abismo','Tumba','Mina','Templo','Cripta','Torre','Fortaleza','Labirinto','Santuário'];
+const dungeonSuffixes = ['das Sombras','do Esquecimento','da Ruína','Antiga','Profunda','Corrompida','do Vazio','do Sangue','das Almas','Maldita'];
+const dungeonBiomeMap = { forest:'Floresta',desert:'Deserto',mountain:'Montanha',city:'Cidade',water:'Água',plains:'Planície',anomaly:'Anomalia' };
+
+function pickRank() {
+  // Weighted random: F=30, E=25, D=18, C=12, B=8, A=4, S=2, SS=0.8, SSS=0.2
+  const w = [30,25,18,12,8,4,2,0.8,0.2];
+  let r = Math.random() * w.reduce((a,b)=>a+b,0);
+  for(let i=0;i<w.length;i++){ r-=w[i]; if(r<=0) return dungeonRankData[i]; }
+  return dungeonRankData[0];
+}
+
+function buildDungeonGrid() {
+  const grid = document.getElementById('dungeonGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const samples = [
+    { name:'Mina de Ferro do Norte', rank:dungeonRankData[2], biome:'mountain', firstClear:true, clearedBy:'IronFist_X', evolving:false, dir:0 },
+    { name:'Bosque Maldito',         rank:dungeonRankData[3], biome:'forest',   firstClear:false,clearedBy:null,          evolving:false, dir:0 },
+    { name:'Tumba das Areias',        rank:dungeonRankData[4], biome:'desert',  firstClear:true, clearedBy:'SilverMoon_77',evolving:true, dir:-1 },
+    { name:'Catacumba de Vel\'Drask', rank:dungeonRankData[6], biome:'city',   firstClear:true, clearedBy:'VoidWalker_BR', evolving:true, dir:1 },
+    { name:'Abismo de Krevnar',       rank:dungeonRankData[8], biome:'anomaly', firstClear:false,clearedBy:null,           evolving:true, dir:1 },
+    { name:'Porto Afundado',          rank:dungeonRankData[1], biome:'water',   firstClear:true, clearedBy:'NightFox_42',  evolving:false, dir:0 },
+    { name:'Planície da Perdição',    rank:dungeonRankData[0], biome:'plains',  firstClear:false,clearedBy:null,           evolving:false, dir:0 },
+    { name:'Templo de Gelo',          rank:dungeonRankData[5], biome:'mountain',firstClear:true, clearedBy:'DragonHunk_99',evolving:true, dir:1 },
+  ];
+  samples.forEach(d => {
+    const card = document.createElement('div');
+    card.className = 'dungeon-card' + (d.evolving?' evolving':'') + (d.dir>0?' evolved-up':d.dir<0?' evolved-down':'');
+    const evolveText = d.evolving ? (d.dir>0?'↑ Ficando mais forte':'↓ Ficando mais fraca') : 'Estável';
+    card.innerHTML = `
+      <div class="d-rank"><span class="rank-badge ${d.rank.color}">${d.rank.rank}</span></div>
+      <div class="d-name">${d.name}</div>
+      <div class="d-info">
+        <strong>Bioma:</strong> ${dungeonBiomeMap[d.biome]}<br>
+        <strong>Andares:</strong> ${d.rank.floors}<br>
+        <strong>Chefe:</strong> ${d.rank.boss}<br>
+        <strong>Evolução:</strong> ${evolveText}
+      </div>
+      <div class="d-first">${d.firstClear ? '✓ Nomeada por '+d.clearedBy : '⊙ Aguarda primeiro desbravador'}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function generateDungeon() {
+  const rankInfo = pickRank();
+  const biomeKeys = ['forest','desert','mountain','city','water','plains','anomaly'];
+  const biome = biomeKeys[Math.floor(Math.random()*biomeKeys.length)];
+  const prefix = dungeonPrefixes[Math.floor(Math.random()*dungeonPrefixes.length)];
+  const suffix = dungeonSuffixes[Math.floor(Math.random()*dungeonSuffixes.length)];
+  const floors = parseInt(rankInfo.floors.split('-')[0]) + Math.floor(Math.random()*3);
+  const evolving = Math.random() < 0.35;
+  const evolDir  = Math.random() < 0.5 ? 'ficando mais forte' : 'ficando mais fraca';
+
+  document.getElementById('dungeon-output').innerHTML = `
+    <div style="background:var(--parchment);border:1px solid var(--ash);padding:1.5rem;max-width:500px;">
+      <div style="margin-bottom:0.5rem;"><span class="rank-badge ${rankInfo.color}">${rankInfo.rank}</span></div>
+      <div style="font-family:'Cinzel',serif;font-size:0.9rem;color:var(--gold);margin-bottom:0.8rem;">${prefix} ${suffix}</div>
+      <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.8;">
+        <strong style="color:var(--text)">Bioma:</strong> ${dungeonBiomeMap[biome]}<br>
+        <strong style="color:var(--text)">Andares:</strong> ${floors}<br>
+        <strong style="color:var(--text)">Dificuldade:</strong> ${rankInfo.danger}<br>
+        <strong style="color:var(--text)">Chefe:</strong> ${rankInfo.boss}<br>
+        <strong style="color:var(--text)">Frequência:</strong> ${rankInfo.freq}<br>
+        <strong style="color:var(--text)">Evolução:</strong> ${evolving ? evolDir : 'Estável'}<br>
+        <span style="color:var(--blood-bright);font-style:italic;font-size:0.75rem;">⊙ Aguarda primeiro desbravador — quem completar pode nomeá-la.</span>
+      </div>
+    </div>
+  `;
+}
+
+buildDungeonGrid();
+
+// =============================================
+// LOCATION & CHAT
+// =============================================
+const chatMessages = [
+  { name:'VoidWalker_BR', cls:'player-you',   text:'Alguém viu aquela dungeon C na parte norte do mapa?' },
+  { name:'Sistema',        cls:'sys-name',     text:'NightFox_42 entrou no mapa.' },
+  { name:'NightFox_42',    cls:'player-other', text:'Cheguei agora. Qual dungeon? Posso ir junto' },
+  { name:'Velindra',       cls:'npc-name',     text:'[NPC] Cuidado, forasteiros — o bosque está inquieto esta noite.' },
+  { name:'VoidWalker_BR',  cls:'player-you',   text:'Npc falou alguma coisa. Hm.' },
+];
+
+function buildChat() {
+  const win = document.getElementById('chatWindow');
+  if (!win) return;
+  chatMessages.forEach(m => appendChatMsg(m.name, m.cls, m.text));
+}
+
+function appendChatMsg(name, cls, text) {
+  const win = document.getElementById('chatWindow');
+  if (!win) return;
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML = `<span class="chat-name ${cls}">${name}:</span> <span class="chat-text">${text}</span>`;
+  win.appendChild(div);
+  win.scrollTop = win.scrollHeight;
+}
+
+function sendChat() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+  appendChatMsg('VoidWalker_BR','player-you', text);
+  input.value = '';
+}
+
+function buildOnlineList() {
+  const list = document.getElementById('onlineList');
+  if (!list) return;
+  const players = [
+    { name:'VoidWalker_BR', pos:'[7,4]', online:true },
+    { name:'NightFox_42',   pos:'[5,6]', online:true },
+    { name:'Velindra',      pos:'[8,3]', online:false, npc:true },
+  ];
+  players.forEach(p => {
+    const d = document.createElement('div');
+    d.style.cssText = 'margin-bottom:0.3rem;font-size:0.78rem;';
+    const dot = p.npc ? `<span class="dead-dot"></span>` : `<span class="online-dot"></span>`;
+    d.innerHTML = `${dot}<span style="color:${p.npc?'var(--text-dim)':p.name==='VoidWalker_BR'?'var(--gold)':'#6aaa6a'}">${p.name}</span> <span style="color:var(--text-dim);font-size:0.7rem;">${p.pos}</span>`;
+    list.appendChild(d);
+  });
+}
+
+function buildLocMiniMap() {
+  const mm = document.getElementById('locMiniMap');
+  if (!mm) return;
+  const layout = [
+    'f','f','f','t','f','f','f','f','f','f',
+    'f','t','f','f','t','f','f','f','t','f',
+    'f','f','f','f','f','f','f','f','f','f',
+    'f','f','t','f','f','f','t','f','f','f',
+    'f','t','f','f','f','f','f','f','t','f',
+    'f','f','f','t','f','f','f','f','f','f',
+    'f','f','f','f','f','t','f','f','f','f',
+    'f','t','f','f','f','f','f','t','f','f',
+    'f','f','f','f','P','f','f','f','f','f',
+    'f','f','f','f','f','f','f','f','f','f',
+  ];
+  layout.forEach(c => {
+    const cell = document.createElement('div');
+    cell.className = 'loc-cell';
+    if (c==='f') cell.style.background='#1a3a1a';
+    else if (c==='t') { cell.style.background='#3a3530'; }
+    else { cell.style.background='var(--blood)'; cell.style.boxShadow='0 0 4px var(--blood-bright)'; }
+    mm.appendChild(cell);
+  });
+}
+
+buildChat();
+buildOnlineList();
+buildLocMiniMap();
+
+// =============================================
+// WEATHER SYSTEM
+// =============================================
+const weatherEvents = {
+  forest:   [
+    { icon:'🌧️', name:'Chuva de Relâmpagos', effect:'Visibilidade reduzida. <strong>Criaturas elétricas</strong> surgem com mais frequência.', spread:'Pode se espalhar para Planície' },
+    { icon:'🌫️', name:'Névoa Densa',          effect:'<strong>Furtividade +20%</strong>. Navegação pelo mapa fica difícil.', spread:'Sem espalhamento' },
+    { icon:'🍂', name:'Vento do Outono',      effect:'Folhas cobrem armadilhas. Coleta de <strong>ervas raras +40%</strong>.', spread:'Pode vir de Planície' },
+  ],
+  desert:   [
+    { icon:'🌪️', name:'Tempestade de Areia',  effect:'<strong>Visibilidade 0%</strong>. Movimento reduzido. Estruturas podem ser soterradas.', spread:'Espalha para Planície e Floresta' },
+    { icon:'☀️', name:'Onda de Calor',         effect:'<strong>Stamina -30%</strong>. Criaturas do calor ficam mais agressivas.', spread:'Sem espalhamento' },
+    { icon:'🌙', name:'Noite Fria do Deserto', effect:'<strong>Buff de furtividade</strong>. Nômades aparecem com mercadorias raras.', spread:'Sem espalhamento' },
+  ],
+  mountain: [
+    { icon:'❄️', name:'Nevasca',               effect:'Rotas bloqueadas. <strong>Hipotermia</strong> se sem equipamento adequado.', spread:'Desce para Floresta próxima' },
+    { icon:'⛈️', name:'Trovejão',               effect:'<strong>Raios aleatórios</strong>. Minério exposto aumenta em regiões afetadas.', spread:'Sem espalhamento' },
+    { icon:'🌋', name:'Tremor de Terra',        effect:'Parte das <strong>dungeons colapsa temporariamente</strong>. Novos depósitos surgem.', spread:'Afeta biomas vizinhos (tutti)' },
+  ],
+  city:     [
+    { icon:'🌧️', name:'Chuva Pesada',          effect:'Comércio no exterior fechado. <strong>Preços internos sobem 15%</strong>.', spread:'Veio de bioma vizinho' },
+    { icon:'🌁', name:'Névoa da Intriga',       effect:'NPCs ficam mais reservados. <strong>Missões de espionagem</strong> são mais lucrativas.', spread:'Gerado internamente' },
+    { icon:'⚡', name:'Tempestade Mágica',      effect:'<strong>Magia instável</strong>. Feiticeiros ganham bônus, mas com risco de falha.', spread:'Originado de Anomalia próxima' },
+  ],
+  water:    [
+    { icon:'🌊', name:'Maré Alta',              effect:'Áreas costeiras inundadas. <strong>Rotas marítimas abertas</strong> normalmente fechadas.', spread:'Afeta costa de biomas adjacentes' },
+    { icon:'⛈️', name:'Tempestade Marítima',    effect:'<strong>Navegação impossível</strong>. Naufrágios trazem itens raros à costa.', spread:'Pode atingir Cidades costeiras' },
+    { icon:'🌙', name:'Mar de Vítreas',         effect:'Água fica cristalina. <strong>Dungeons aquáticas visíveis</strong> do mapa superior.', spread:'Sem espalhamento' },
+  ],
+  plains:   [
+    { icon:'💨', name:'Vendaval',               effect:'Movimentação de cavalaria <strong>+30%</strong>. Arqueiros penalizados.', spread:'Pode vir de qualquer adjacente' },
+    { icon:'🌾', name:'Colheita Abundante',     effect:'NPCs aldeões pagam mais por proteção. <strong>Missões de escolta</strong> disponíveis.', spread:'Gerado internamente' },
+    { icon:'🌩️', name:'Chuva de Guerra',        effect:'Solo enlameado. <strong>Cavalaria -20%</strong>. Infantaria fica igual.', spread:'Originado de Montanha' },
+  ],
+  anomaly:  [
+    { icon:'🌀', name:'Fratura Dimensional',    effect:'<strong>Teleportes aleatórios</strong>. Monstros de outras regiões surgem.', spread:'Pode contaminar biomas adjacentes' },
+    { icon:'🔮', name:'Inversão de Realidade',  effect:'Mapas ficam espelhados. <strong>Todos os buffs e debuffs invertidos</strong>.', spread:'Sem espalhamento' },
+    { icon:'⬛', name:'Eclipse Eterno',          effect:'Noite perpétua por 24h reais. <strong>Undead e entidades</strong> dominam o mapa.', spread:'Influencia Floresta e Planície próximas' },
+  ],
+};
+
+function rerollWeather() {
+  const grid = document.getElementById('weatherGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const biomes = ['forest','desert','mountain','city','water','plains','anomaly'];
+  biomes.forEach(biome => {
+    const events = weatherEvents[biome];
+    const ev = events[Math.floor(Math.random()*events.length)];
+    const bInfo = BIOMES[biome];
+    const card = document.createElement('div');
+    card.className = 'weather-card';
+    card.innerHTML = `
+      <span class="weather-icon-big">${ev.icon}</span>
+      <div class="weather-biome">${bInfo.icon} ${bInfo.name}</div>
+      <div class="weather-event-name">${ev.name}</div>
+      <div class="weather-effect">${ev.effect}</div>
+      <div class="weather-spread">⟶ ${ev.spread}</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+rerollWeather();
+
+// =============================================
+// SANDBOX / SETTLEMENT
+// =============================================
+const SANDBOX_SIZE = 12;
+let sandboxState = Array(SANDBOX_SIZE * SANDBOX_SIZE).fill('s-terrain');
+let activeTool = 's-house';
+const settlementStages = [
+  { name:'Acampamento', min:0,  max:4,  next:'Vilarejo' },
+  { name:'Vilarejo',    min:4,  max:12, next:'Vila'     },
+  { name:'Vila',        min:12, max:25, next:'Cidade'   },
+  { name:'Cidade',      min:25, max:50, next:'Reino'    },
+  { name:'Reino',       min:50, max:999,next:'—'        },
+];
+
+// Pre-populate a bit
+[14,15,25,26,37,62,63,74].forEach((i,idx) => {
+  sandboxState[i] = ['s-house','s-house','s-shop','s-house','s-terrain','s-terrain','s-terrain','s-terrain'][idx];
+});
+sandboxState[50] = 's-road'; sandboxState[51] = 's-road'; sandboxState[52] = 's-road';
+
+function countBuildings() {
+  return sandboxState.filter(c => ['s-house','s-shop','s-tavern','s-forge'].includes(c)).length;
+}
+
+function getStage() {
+  const n = countBuildings();
+  return settlementStages.find(s => n >= s.min && n < s.max) || settlementStages[settlementStages.length-1];
+}
+
+function updateSettlement() {
+  const n = countBuildings();
+  const stage = getStage();
+  const next  = settlementStages.find(s => s.min === stage.max);
+  const pct   = Math.min(100, ((n - stage.min)/(stage.max - stage.min))*100);
+  const nameEl = document.getElementById('settleStageName');
+  const barEl  = document.getElementById('settleBar');
+  const infoEl = document.getElementById('settleInfo');
+  const nextEl = document.getElementById('settleNext');
+  const descEl = document.getElementById('sandboxDesc');
+  if (nameEl) nameEl.textContent = stage.name;
+  if (barEl)  barEl.style.width = pct+'%';
+  if (infoEl) infoEl.textContent = n+' / '+stage.max+' construções para '+stage.next;
+  if (nextEl) nextEl.textContent = next ? 'Próximo: '+stage.next : '— Máximo atingido';
+  if (descEl) {
+    const descs = {
+      'Acampamento':'Algumas estruturas básicas. NPCs ainda não se estabelecem aqui permanentemente.',
+      'Vilarejo':'O mapa começa a atrair moradores fixos. Comércio básico disponível.',
+      'Vila':'Guildas começam a se instalar. O mapa aparece no mapa-mundo como assentamento.',
+      'Cidade':'Centro político regional. Outros jogadores são atraídos. Facções surgem.',
+      'Reino':'Você controla um reino. Impostos, exércitos e política são agora necessidades.',
+    };
+    descEl.textContent = descs[stage.name] || '';
+  }
+}
+
+function buildSandboxMap() {
+  const map = document.getElementById('sandboxMap');
+  if (!map) return;
+  map.innerHTML = '';
+  sandboxState.forEach((cls, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'sandbox-cell '+cls;
+    cell.onclick = () => {
+      sandboxState[i] = activeTool;
+      buildSandboxMap();
+      updateSettlement();
+    };
+    map.appendChild(cell);
+  });
+  updateSettlement();
+}
+
+function initSandboxTools() {
+  const toolbar = document.getElementById('sandboxTools');
+  if (!toolbar) return;
+  toolbar.querySelectorAll('.tool-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      activeTool = this.dataset.tool;
+      toolbar.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+    });
+  });
+}
+
+buildSandboxMap();
+initSandboxTools();
+
+// =============================================
+// GM CONSOLE
+// =============================================
+function gmTab(tab) {
+  document.querySelectorAll('.gm-tab').forEach((t,i) => {
+    const tabs = ['stats','players','world','dungeons','console'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  document.querySelectorAll('.gm-content').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('gm-'+tab);
+  if (el) el.classList.add('active');
+}
+
+const gmHelp = {
+  help:     'Comandos: help, stats, players, kick [player], ban [player], weather [biome], dungeon [rank], teleport [player] [x] [y], heal [player], kill [player]',
+  stats:    'Jogadores: 1247 online | Mapas: 38204 | Mortes hoje: 127 | Serv: 42ms',
+  players:  'Jogadores online: VoidWalker_BR, NightFox_42, SilverMoon_77 (+1244 mais)',
+};
+
+function gmLog(text, cls='') {
+  const log = document.getElementById('gm-console-log');
+  if (!log) return;
+  const d = document.createElement('div');
+  const now = new Date();
+  const ts = `[${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}]`;
+  d.innerHTML = `<span class="log-time">${ts}</span>${cls?` <span class="${cls}">`:' '}${text}${cls?'</span>':''}`;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+}
+
+function runGmCmd() {
+  const input = document.getElementById('gmCmdInput');
+  const cmd = input.value.trim();
+  if (!cmd) return;
+  gmLog('> '+cmd);
+  input.value = '';
+  const parts = cmd.split(' ');
+  const base  = parts[0].toLowerCase();
+  if (gmHelp[base]) { gmLog(gmHelp[base], 'log-info'); return; }
+  if (base==='kick' && parts[1])  { gmLog(`Jogador "${parts[1]}" foi desconectado do servidor.`, 'log-warn'); return; }
+  if (base==='ban'  && parts[1])  { gmLog(`Conta "${parts[1]}" banida permanentemente.`, 'log-warn'); return; }
+  if (base==='weather' && parts[1]) { gmLog(`Evento climático forçado em bioma ${parts[1]}.`, 'log-ok'); return; }
+  if (base==='dungeon') { gmLog(`Dungeon rank ${parts[1]||'?'} gerada manualmente no mapa atual.`, 'log-ok'); return; }
+  if (base==='kill' && parts[1]) { gmLog(`Personagem de "${parts[1]}" removido. Conta em cooldown 24h.`, 'log-warn'); return; }
+  if (base==='heal' && parts[1]) { gmLog(`Personagem de "${parts[1]}" curado para HP máximo.`, 'log-ok'); return; }
+  if (base==='teleport') { gmLog(`${parts[1]||'?'} teleportado para [${parts[2]||'?'}, ${parts[3]||'?'}].`, 'log-ok'); return; }
+  gmLog(`Comando desconhecido: "${base}". Digite "help" para lista de comandos.`, 'log-warn');
+}
+
+</script>
+</body>
+</html>

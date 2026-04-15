@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aeterra: World Breaker — Entrar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    min-height: 100vh;
+    background: #080704;
+    color: #c9a84c;
+    font-family: 'Cinzel', serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* animated star background */
+  .stars {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, #1a0d0050 0%, transparent 70%),
+      radial-gradient(ellipse at 80% 20%, #0d1a0050 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .stars::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, #c9a84c55, transparent),
+      radial-gradient(1px 1px at 30% 70%, #c9a84c33, transparent),
+      radial-gradient(1px 1px at 60% 25%, #c9a84c44, transparent),
+      radial-gradient(1px 1px at 80% 60%, #c9a84c33, transparent),
+      radial-gradient(1px 1px at 45% 90%, #c9a84c22, transparent);
+    background-size: 300px 300px;
+    animation: twinkle 8s ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { 0%{opacity:.5} 100%{opacity:1} }
+
+  .card {
+    position: relative;
+    background: linear-gradient(160deg, #12100a 0%, #0e0c07 100%);
+    border: 1px solid #3a2e14;
+    border-top-color: #c9a84c55;
+    border-radius: 2px;
+    width: 380px;
+    padding: 2.5rem 2rem 2rem;
+    box-shadow: 0 0 60px #c9a84c15, 0 0 0 1px #0a0800 inset;
+  }
+  .card::before {
+    content: '';
+    position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+    width: 60%; height: 1px;
+    background: linear-gradient(to right, transparent, #c9a84c, transparent);
+  }
+
+  .logo {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .logo h1 {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 1.9rem;
+    letter-spacing: 0.2em;
+    color: #c9a84c;
+    text-shadow: 0 0 30px #c9a84c55;
+  }
+  .logo p { font-size: 0.6rem; letter-spacing: 0.35em; color: #7a5e2a; margin-top: .3rem; }
+
+  .ornament { text-align: center; color: #5a4420; font-size: 1rem; margin: 1rem 0; letter-spacing: .3em; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid #2a2010; }
+  .tab-btn {
+    flex: 1; padding: .6rem; font-family: 'Cinzel', serif; font-size: .75rem;
+    letter-spacing: .1em; background: transparent; border: none;
+    color: #5a4420; cursor: pointer; transition: color .2s;
+  }
+  .tab-btn.active { color: #c9a84c; border-bottom: 2px solid #c9a84c; margin-bottom: -1px; }
+  .tab-btn:hover:not(.active) { color: #8a6e3a; }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  label { display: block; font-size: .65rem; letter-spacing: .15em; color: #7a5e2a; margin-bottom: .35rem; }
+
+  input[type=text], input[type=password] {
+    width: 100%; padding: .65rem .8rem;
+    background: #0a0800; border: 1px solid #2a2010;
+    border-radius: 1px; color: #c9a84c;
+    font-family: 'Cinzel', serif; font-size: .8rem;
+    outline: none; transition: border-color .2s;
+    margin-bottom: 1rem;
+  }
+  input:focus { border-color: #c9a84c55; }
+
+  .btn {
+    width: 100%; padding: .75rem;
+    background: linear-gradient(135deg, #1a1408, #2a2010);
+    border: 1px solid #3a2e14;
+    color: #c9a84c; font-family: 'Cinzel', serif;
+    font-size: .8rem; letter-spacing: .2em;
+    cursor: pointer; transition: all .2s; margin-top: .5rem;
+  }
+  .btn:hover { background: linear-gradient(135deg, #2a2010, #3a3018); border-color: #c9a84c55; }
+  .btn:active { transform: scale(.98); }
+
+  .error-box {
+    background: #1a0808; border: 1px solid #4a1010;
+    color: #cc4444; font-size: .72rem; letter-spacing: .05em;
+    padding: .6rem .8rem; margin-bottom: 1rem; display: none;
+  }
+  .info-box {
+    background: #081408; border: 1px solid #104a10;
+    color: #44cc44; font-size: .72rem; letter-spacing: .05em;
+    padding: .6rem .8rem; margin-bottom: 1rem; display: none;
+  }
+
+  .footer-note {
+    text-align: center; font-size: .55rem; letter-spacing: .1em;
+    color: #3a2e14; margin-top: 1.5rem;
+  }
+  .footer-note a { color: #5a4420; text-decoration: none; }
+  .footer-note a:hover { color: #c9a84c; }
+
+  /* cooldown timer */
+  .cooldown-box {
+    text-align: center; padding: 1rem;
+    background: #1a0808; border: 1px solid #4a1010;
+    color: #cc6644; font-size: .75rem; line-height: 1.8;
+    display: none;
+  }
+  .cooldown-box .timer { font-size: 1.4rem; color: #cc4444; letter-spacing: .1em; margin-top: .5rem; }
+  .ghost-btn {
+    width: 100%; padding: .7rem; margin-top: .9rem;
+    background: #120d08; border: 1px solid #4a2e10;
+    color: #ccaa66; font-family: 'Cinzel', serif;
+    font-size: .68rem; letter-spacing: .14em; cursor: pointer; display: none;
+  }
+  .ghost-btn:hover { border-color: #ccaa66; color: #f0d080; }
+
+  .loading { text-align: center; font-size: .7rem; color: #5a4420; letter-spacing: .2em; display: none; }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+
+<div class="card">
+  <div class="logo">
+    <h1>AETERRA</h1>
+    <p>FORUM AETERNUM · MUNDUS PROCEDURALIS</p>
+  </div>
+  <div class="ornament">✦ ─── ✦ ─── ✦</div>
+
+  <!-- Cooldown notice (shown on 24h death cooldown) -->
+  <div class="cooldown-box" id="cooldownBox">
+    <div>Sua personagem encontrou o fim.</div>
+    <div>O mundo aguarda um novo portador do destino.</div>
+    <div class="timer" id="cooldownTimer"></div>
+    <div style="font-size:.55rem;color:#5a3a3a;margin-top:.6rem">O destino se renova em seu tempo.</div>
+    <button class="ghost-btn" id="devRespawnBtn" onclick="doDevRespawn()">RENASCER PARA TESTE</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" onclick="showTab('login')">ENTRAR</button>
+    <button class="tab-btn"       onclick="showTab('register')">INVOCAR CONTA</button>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="tab-panel active" id="panel-login">
+    <div class="error-box" id="login-err"></div>
+    <label for="l-user">IDENTIFICAÇÃO</label>
+    <input type="text" id="l-user" placeholder="Seu nome no reino" autocomplete="username">
+    <label for="l-pass">SENHA ARCANA</label>
+    <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    <div class="loading" id="login-loading">VERIFICANDO...</div>
+    <button class="btn" onclick="doLogin()">▶  ADENTRAR O MUNDO</button>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="tab-panel" id="panel-register">
+    <div class="error-box" id="reg-err"></div>
+    <div class="info-box"  id="reg-ok"></div>
+    <label for="r-user">IDENTIFICAÇÃO</label>
+    <input type="text" id="r-user" placeholder="3–20 caracteres" autocomplete="username">
+    <label for="r-pass">SENHA ARCANA</label>
+    <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+    <label for="r-pass2">CONFIRMAR SENHA</label>
+    <input type="password" id="r-pass2" placeholder="Repita a senha" autocomplete="new-password">
+    <div class="loading" id="reg-loading">INSCREVENDO...</div>
+    <button class="btn" onclick="doRegister()">✦  INSCREVER NO DESTINO</button>
+  </div>
+
+  <div class="footer-note">
+    Somente os dignos persistem. <a href="/concept">Conhecer o mundo.</a>
+  </div>
+</div>
+
+<script>
+  let lastLoginAttempt = { username: '', password: '' };
+
+  function showTab(name) {
+    document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['login','register'][i] === name));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    clearErrors();
+  }
+
+  function clearErrors() {
+    ['login-err','reg-err','reg-ok'].forEach(id => {
+      const el = document.getElementById(id);
+      el.style.display = 'none'; el.textContent = '';
+    });
+  }
+
+  function showErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg; el.style.display = 'block';
+  }
+
+  function setLoading(id, on) {
+    document.getElementById(id).style.display = on ? 'block' : 'none';
+  }
+
+  function persistAuthState(payload) {
+    localStorage.setItem('aet_token', payload.token);
+    localStorage.setItem('aet_username', payload.username);
+    localStorage.setItem('aet_is_gm', payload.isGm ? '1' : '0');
+    localStorage.setItem('aet_bypass_death_cooldown', payload.bypassDeathCooldown ? '1' : '0');
+  }
+
+  async function doLogin() {
+    clearErrors();
+    const username = document.getElementById('l-user').value.trim();
+    const password = document.getElementById('l-pass').value;
+    if (!username || !password) return showErr('login-err','Preencha todos os campos.');
+    lastLoginAttempt = { username, password };
+
+    setLoading('login-loading', true);
+    try {
+      const r  = await fetch('/api/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}) });
+      const d  = await r.json();
+
+      if (!r.ok) {
+        if (d.cooldown) {
+          showCooldown(d.until, d.error, d.allowDevRespawn);
+        } else {
+          showErr('login-err', d.error || 'Erro ao entrar.');
+        }
+        return;
+      }
+
+      persistAuthState(d);
+      window.location.href = '/game.html';
+    } catch { showErr('login-err', 'Servidor inacessível.'); }
+    finally { setLoading('login-loading', false); }
+  }
+
+  async function doRegister() {
+    clearErrors();
+    const username = document.getElementById('r-user').value.trim();
+    const password = document.getElementById('r-pass').value;
+    const password2 = document.getElementById('r-pass2').value;
+    if (!username || !password || !password2) return showErr('reg-err','Preencha todos os campos.');
+    if (password !== password2) return showErr('reg-err','As senhas não coincidem.');
+
+    setLoading('reg-loading', true);
+    try {
+      const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}) });
+      const d = await r.json();
+
+      if (!r.ok) return showErr('reg-err', d.error || 'Erro ao registrar.');
+
+      persistAuthState(d);
+      window.location.href = '/game.html';
+    } catch { showErr('reg-err', 'Servidor inacessível.'); }
+    finally { setLoading('reg-loading', false); }
+  }
+
+  // If already logged in, redirect
+  if (localStorage.getItem('aet_token')) window.location.href = '/game.html';
+
+  // Show admin shortcut if previous session was GM
+  if (localStorage.getItem('aet_is_gm') === '1') {
+    const note = document.querySelector('.footer-note');
+    if (note) {
+      note.appendChild(document.createTextNode(' · '));
+      const a = document.createElement('a');
+      a.href = '/admin.html';
+      a.textContent = 'Painel GM';
+      note.appendChild(a);
+    }
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+      else doRegister();
+    }
+  });
+
+  function showCooldown(until, msg, allowDevRespawn) {
+    document.getElementById('tabs').style.display = 'none';
+    document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+    const box = document.getElementById('cooldownBox');
+    box.style.display = 'block';
+    if (msg) box.firstElementChild.textContent = msg;
+    document.getElementById('devRespawnBtn').style.display = allowDevRespawn ? 'block' : 'none';
+    updateCooldownTimer(until);
+  }
+
+  async function doDevRespawn() {
+    if (!lastLoginAttempt.username || !lastLoginAttempt.password) return;
+    try {
+      const r = await fetch('/api/dev/reset-cooldown', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lastLoginAttempt),
+      });
+      const d = await r.json();
+      if (!r.ok) return;
+      persistAuthState(d);
+      window.location.href = '/game.html';
+    } catch {
+      /* fallback: manter fluxo normal de login */
+    }
+  }
+
+  function updateCooldownTimer(until) {
+    const end = new Date(until.replace(' ','T') + (until.includes('Z') ? '' : 'Z'));
+    const tick = () => {
+      const diff = end - new Date();
+      if (diff <= 0) { document.getElementById('cooldownTimer').textContent = 'O destino renova-se agora.'; return; }
+      const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+      document.getElementById('cooldownTimer').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+</script>
+</body>
+</html>
