@@ -1508,10 +1508,10 @@ async function createChar() {
     `;
     document.getElementById('cc-reveal').style.display = 'block';
 
-  } catch { err.textContent = 'Servidor inacessível.'; }
+  } catch { err.textContent = t('game.cc.errOffline'); }
   finally {
     document.getElementById('cc-btn').disabled = false;
-    document.getElementById('cc-btn').textContent = '✦ LANÇAR NO MUNDO';
+    document.getElementById('cc-btn').textContent = t('game.cc.btn');
   }
 }
 
