@@ -1,0 +1,12 @@
+node_modules
+*.db
+*.db-shm
+*.db-wal
+.git
+.github
+*.md
+!README.md
+scripts/
+.env
+.env.*
+npm-debug.log*
