@@ -179,6 +179,8 @@ db.exec(`
 
 // Migrations: add new columns idempotently
 try { db.prepare('ALTER TABLE accounts ADD COLUMN bypass_death_cooldown INTEGER DEFAULT 0').run(); } catch {}
+try { db.prepare('ALTER TABLE accounts ADD COLUMN email TEXT').run(); } catch {}
+try { db.prepare('CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_email ON accounts (email) WHERE email IS NOT NULL').run(); } catch {}
 try { db.prepare("ALTER TABLE characters ADD COLUMN equipment TEXT    DEFAULT '{}'").run(); } catch {}
 try { db.prepare('ALTER TABLE characters ADD COLUMN kills    INTEGER DEFAULT 0').run();  } catch {}
 try { db.prepare("ALTER TABLE characters ADD COLUMN skills TEXT DEFAULT '[]'").run(); } catch {}

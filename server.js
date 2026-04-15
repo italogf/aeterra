@@ -211,18 +211,24 @@ function reserveBirthMap(biome) {
 // ─────────────────────────── POST /api/register ────────────────────────────
 app.post('/api/register', async (req, res) => {
   try {
-    const { username, password } = req.body || {};
-    if (!username || !password) return res.status(400).json({ error: 'Dados inválidos' });
+    const { username, password, email } = req.body || {};
+    if (!username || !password || !email) return res.status(400).json({ error: 'Dados inválidos' });
     const u = String(username).trim();
     if (u.length < 3 || u.length > 20)       return res.status(400).json({ error: 'Username: 3–20 caracteres' });
     if (!/^[a-zA-Z0-9_]+$/.test(u))          return res.status(400).json({ error: 'Username: apenas letras, números e _' });
     if (String(password).length < 6)          return res.status(400).json({ error: 'Senha: mínimo 6 caracteres' });
 
+    const e = String(email).trim().toLowerCase();
+    if (!e.includes('@') || !e.includes('.')) return res.status(400).json({ error: 'E-mail inválido.' });
+
     const exists = db.prepare('SELECT id FROM accounts WHERE username=? COLLATE NOCASE').get(u);
     if (exists) return res.status(400).json({ error: 'Username já em uso' });
 
+    const emailTaken = db.prepare('SELECT id FROM accounts WHERE email=?').get(e);
+    if (emailTaken) return res.status(409).json({ error: 'Email já cadastrado.' });
+
     const hash = await bcrypt.hash(String(password), 10);
-    const { lastInsertRowid } = db.prepare('INSERT INTO accounts (username, password_hash) VALUES (?,?)').run(u, hash);
+    const { lastInsertRowid } = db.prepare('INSERT INTO accounts (username, password_hash, email) VALUES (?,?,?)').run(u, hash, e);
     const token = jwt.sign({ accountId: lastInsertRowid, username: u }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, username: u, accountId: lastInsertRowid, hasCharacter: false, isGm: false, bypassDeathCooldown: false });
   } catch (e) { console.error('register:', e); res.status(500).json({ error: 'Erro interno' }); }

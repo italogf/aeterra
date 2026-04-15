@@ -89,7 +89,7 @@
 
   label { display: block; font-size: .65rem; letter-spacing: .15em; color: #7a5e2a; margin-bottom: .35rem; }
 
-  input[type=text], input[type=password] {
+  input[type=text], input[type=email], input[type=password] {
     width: 100%; padding: .65rem .8rem;
     background: #0a0800; border: 1px solid #2a2010;
     border-radius: 1px; color: #c9a84c;
@@ -188,6 +188,8 @@
     <div class="info-box"  id="reg-ok"></div>
     <label for="r-user">IDENTIFICAÇÃO</label>
     <input type="text" id="r-user" placeholder="3–20 caracteres" autocomplete="username">
+    <label for="r-email">E-MAIL</label>
+    <input type="email" id="r-email" placeholder="E-mail" autocomplete="email">
     <label for="r-pass">SENHA ARCANA</label>
     <input type="password" id="r-pass" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
     <label for="r-pass2">CONFIRMAR SENHA</label>
@@ -264,14 +266,15 @@
   async function doRegister() {
     clearErrors();
     const username = document.getElementById('r-user').value.trim();
+    const email    = document.getElementById('r-email').value.trim();
     const password = document.getElementById('r-pass').value;
     const password2 = document.getElementById('r-pass2').value;
-    if (!username || !password || !password2) return showErr('reg-err','Preencha todos os campos.');
+    if (!username || !email || !password || !password2) return showErr('reg-err','Preencha todos os campos.');
     if (password !== password2) return showErr('reg-err','As senhas não coincidem.');
 
     setLoading('reg-loading', true);
     try {
-      const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, password}) });
+      const r = await fetch('/api/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username, email, password}) });
       const d = await r.json();
 
       if (!r.ok) return showErr('reg-err', d.error || 'Erro ao registrar.');
